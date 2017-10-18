@@ -205,17 +205,17 @@ vec3 mat3::operator* (const vec3 &v) {
 mat3 mat3::operator* (const mat3 &m) {
 	mat3 res;
 
-	res[0][0] = mat[0][0] * m.mat[0][0] + mat[1][0] * m.mat[0][1] + mat[2][0] * m.mat[0][2];
-	res[0][1] = mat[0][0] * m.mat[1][0] + mat[1][0] * m.mat[1][1] + mat[2][0] * m.mat[1][2];
-	res[0][2] = mat[0][0] * m.mat[2][0] + mat[1][0] * m.mat[2][1] + mat[2][0] * m.mat[2][2];
+	res[0][0] = mat[0][0] * m.mat[0][0] + mat[0][1] * m.mat[1][0] + mat[0][2] * m.mat[2][0];
+	res[0][1] = mat[0][0] * m.mat[0][1] + mat[0][1] * m.mat[1][1] + mat[0][2] * m.mat[2][1];
+	res[0][2] = mat[0][0] * m.mat[0][2] + mat[0][1] * m.mat[1][2] + mat[0][2] * m.mat[2][2];
 
-	res[1][0] = mat[0][1] * m.mat[0][0] + mat[1][1] * m.mat[0][1] + mat[2][1] * m.mat[0][2];
-	res[1][1] = mat[0][1] * m.mat[1][0] + mat[1][1] * m.mat[1][1] + mat[2][1] * m.mat[1][2];
-	res[1][2] = mat[0][1] * m.mat[2][0] + mat[1][1] * m.mat[2][1] + mat[2][1] * m.mat[2][2];
+	res[1][0] = mat[1][0] * m.mat[0][0] + mat[1][1] * m.mat[1][0] + mat[1][2] * m.mat[2][0];
+	res[1][1] = mat[1][0] * m.mat[0][1] + mat[1][1] * m.mat[1][1] + mat[1][2] * m.mat[2][1];
+	res[1][2] = mat[1][0] * m.mat[0][2] + mat[1][1] * m.mat[1][2] + mat[1][2] * m.mat[2][2];
 
-	res[2][0] = mat[0][2] * m.mat[0][0] + mat[1][2] * m.mat[0][1] + mat[2][2] * m.mat[0][2];
-	res[2][1] = mat[0][2] * m.mat[1][0] + mat[1][2] * m.mat[1][1] + mat[2][2] * m.mat[1][2];
-	res[2][2] = mat[0][2] * m.mat[2][0] + mat[1][2] * m.mat[2][1] + mat[2][2] * m.mat[2][2];
+	res[2][0] = mat[2][0] * m.mat[0][0] + mat[2][1] * m.mat[1][0] + mat[2][2] * m.mat[2][0];
+	res[2][1] = mat[2][0] * m.mat[0][1] + mat[2][1] * m.mat[1][1] + mat[2][2] * m.mat[2][1];
+	res[2][2] = mat[2][0] * m.mat[0][2] + mat[2][1] * m.mat[1][2] + mat[2][2] * m.mat[2][2];
 
 
 	return res;

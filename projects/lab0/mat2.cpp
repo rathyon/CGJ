@@ -139,11 +139,11 @@ vec2 mat2::operator* (const vec2 &v) {
 mat2 mat2::operator* (const mat2 &m) {
 	mat2 res;
 
-	res[0][0] = mat[0][0] * m.mat[0][0] + mat[1][0] * m.mat[0][1];
-	res[0][1] = mat[0][0] * m.mat[1][0] + mat[1][0] * m.mat[1][1];
+	res[0][0] = mat[0][0] * m.mat[0][0] + mat[0][1] * m.mat[1][0];
+	res[0][1] = mat[0][0] * m.mat[0][1] + mat[0][1] * m.mat[1][1];
 
-	res[1][0] = mat[0][1] * m.mat[0][0] + mat[1][1] * m.mat[0][1];
-	res[1][1] = mat[0][1] * m.mat[1][0] + mat[1][1] * m.mat[1][1];
+	res[1][0] = mat[1][0] * m.mat[0][0] + mat[1][1] * m.mat[1][0];
+	res[1][1] = mat[1][0] * m.mat[0][1] + mat[1][1] * m.mat[1][1];
 
 	return res;
 }
