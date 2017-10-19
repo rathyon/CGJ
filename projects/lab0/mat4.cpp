@@ -39,6 +39,13 @@ mat3 toMat3(mat4 mat) {
 
 }
 
+void toGLFormat(mat4 m, float mat[]) {
+	mat[0] = m[0][0]; mat[1] = m[0][1]; mat[2] = m[0][2]; mat[3] = m[0][3];
+	mat[4] = m[1][0]; mat[5] = m[1][1]; mat[6] = m[1][2]; mat[7] = m[1][3];
+	mat[8] = m[2][0]; mat[9] = m[2][1]; mat[10] = m[2][2]; mat[11] = m[2][3];
+	mat[12] = m[3][0]; mat[13] = m[3][1]; mat[14] = m[3][2]; mat[15] = m[3][3];
+}
+
 
 mat4::~mat4()
 {
@@ -46,10 +53,10 @@ mat4::~mat4()
 mat4 mat4_identity() {
 	mat4 mat;
 
-	mat[0][0] = 1; mat[0][1] = 0; mat[0][2] = 0; mat[0][3] = 0;
-	mat[1][0] = 0; mat[1][1] = 1; mat[1][2] = 0; mat[1][3] = 0;
-	mat[2][0] = 0; mat[2][1] = 0; mat[2][2] = 1; mat[2][3] = 0;
-	mat[3][0] = 0; mat[3][1] = 0; mat[3][2] = 0; mat[3][3] = 1;
+	mat[0][0] = 1.0f; mat[0][1] = 0.0f; mat[0][2] = 0.0f; mat[0][3] = 0.0f;
+	mat[1][0] = 0.0f; mat[1][1] = 1.0f; mat[1][2] = 0.0f; mat[1][3] = 0.0f;
+	mat[2][0] = 0.0f; mat[2][1] = 0.0f; mat[2][2] = 1.0f; mat[2][3] = 0.0f;
+	mat[3][0] = 0.0f; mat[3][1] = 0.0f; mat[3][2] = 0.0f; mat[3][3] = 1.0f;
 
 	return mat;
 }

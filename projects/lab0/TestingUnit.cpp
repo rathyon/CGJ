@@ -291,4 +291,6 @@ int test() {
 
 	std::cin.ignore();
 
+	return 0;
+
 }

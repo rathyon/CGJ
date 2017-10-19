@@ -3,6 +3,7 @@
 #include "vec4.h"
 #include "vec3.h"
 #include "mat3.h"
+#include "GL/glew.h"
 
 #define THRESHOLD 0.00001f
 
@@ -22,6 +23,7 @@ public:
 
 	//conversion
 	friend mat3 toMat3(mat4);
+	friend void toGLFormat(mat4, float[]); // do I have to turn to column major? opengl can do it for me
 
 	//pre-set matrices
 	friend mat4 mat4_identity();
