@@ -34,6 +34,8 @@
 #include "MathLib.h"
 #include "Shader.h"
 
+#define PRINT(s) std::cout << s << std::endl;
+
 #define CAPTION "Hello Modern 2D World"
 
 int WinX = 640, WinY = 640;
@@ -118,13 +120,21 @@ void createShaderProgram()
 	sp.init();
 
 	sp.loadShader(Shader::VERTEX_SHADER, "shaders/tangram.vert");
+	if (!sp.isShaderCompiled(Shader::VERTEX_SHADER))
+		PRINT("Vertex shader is not compiled!");
 	sp.loadShader(Shader::FRAGMENT_SHADER, "shaders/tangram.frag");
+	if (!sp.isShaderCompiled(Shader::FRAGMENT_SHADER))
+		PRINT("Fragment shader is not compiled!");
 
 	sp.setAttributeName(Shader::VERTICES_ATTRIB, "in_Position");
 	sp.setAttributeName(Shader::COLORS_ATTRIB, "in_Color");
 	sp.linkProgram();
 
 	UniformId = glGetUniformLocation(sp.programID, "Matrix");
+
+	sp.shaderInfoLog(Shader::VERTEX_SHADER);
+	sp.shaderInfoLog(Shader::FRAGMENT_SHADER);
+	sp.programInfoLog();
 
 	checkOpenGLError("ERROR: Could not create shaders.");
 }
@@ -153,9 +163,9 @@ typedef struct
 //red
 Vertex tri1[] =
 {
-	{ { -0.25f, -0.25f, 0.0f, 1.0f },{ 1.0f, 0.0f, 0.0f, 1.0f } },
-	{ { 0.25f, -0.25f, 0.0f, 1.0f },{ 1.0f, 0.0f, 0.0f, 1.0f } },
-	{ { 0.25f, 0.25f, 0.0f, 1.0f },{ 1.0f, 0.0f, 0.0f, 1.0f } }
+	{ { -(sqrt(2.0f)/4.0f), -(sqrt(2.0f) / 4.0f), 0.0f, 1.0f },{ 1.0f, 0.0f, 0.0f, 1.0f } },
+	{ { (sqrt(2.0f) / 4.0f), -(sqrt(2.0f) / 4.0f), 0.0f, 1.0f },{ 1.0f, 0.0f, 0.0f, 1.0f } },
+	{ { 0.0f, 0.0f, 0.0f, 1.0f },{ 1.0f, 0.0f, 0.0f, 1.0f } }
 };
 
 GLubyte tri1_i[] =
@@ -300,87 +310,49 @@ void destroyBufferObjects()
 
 /////////////////////////////////////////////////////////////////////// SCENE
 
+void drawObj(int vertexCount) {
+	glBindVertexArray(vao_ID[objID]);
+	glUseProgram(sp.programID);
+	glUniformMatrix4fv(UniformId, 1, GL_TRUE, matrix);
+	glDrawElements(GL_TRIANGLES, vertexCount, GL_UNSIGNED_BYTE, (GLvoid*)0);
+}
+
 void drawScene()
 {
-	
-	toGLFormat(mat4_translation(0.25f, -0.25f, 0), matrix);
-
-	// medium triangle
+	// medium red triangle
 	objID = 0;
-	glBindVertexArray(vao_ID[objID]);
-	glUseProgram(sp.programID);
+	toGLFormat(mat4_translation(-0.25f, 0.6f, 0.0f)*mat4_rotation(45, vec3(0,0,1)), matrix);
+	drawObj(3);
 
-	glUniformMatrix4fv(UniformId, 1, GL_TRUE, matrix);
-	glDrawElements(GL_TRIANGLES, 3, GL_UNSIGNED_BYTE, (GLvoid*)0); // SECOND ARGUMENT MUST MATCH NUMBER OF VERTICES TO BE RENDERED
-
-	toGLFormat(mat4_identity(), matrix);
-
-	//large triangle
-
-	toGLFormat(mat4_rotation(180, vec3(0,0,1)), matrix);
-
+	//large green triangle
 	objID = 1;
-	glBindVertexArray(vao_ID[objID]);
-	glUseProgram(sp.programID);
+	toGLFormat(mat4_translation(0.25f, -0.4f, 0)*mat4_rotation(-90, vec3(0, 0, 1)), matrix);
+	drawObj(3);
 
-	glUniformMatrix4fv(UniformId, 1, GL_TRUE, matrix);
-	glDrawElements(GL_TRIANGLES, 3, GL_UNSIGNED_BYTE, (GLvoid*)0);
-
-	//large triangle
-
-	toGLFormat(mat4_rotation(-90, vec3(0,0,1)), matrix);
-
+	//large blue triangle
 	objID = 2;
-	glBindVertexArray(vao_ID[objID]);
-	glUseProgram(sp.programID);
+	toGLFormat(mat4_translation(-0.25f, 0.1f, 0)*mat4_rotation(90, vec3(0, 0, 1)), matrix);
+	drawObj(3);
 
-	glUniformMatrix4fv(UniformId, 1, GL_TRUE, matrix);
-	glDrawElements(GL_TRIANGLES, 3, GL_UNSIGNED_BYTE, (GLvoid*)0);
-
-	//small triangle
-
-	toGLFormat(mat4_translation(0.25f, 0.25f, 0)*mat4_rotation(90, vec3(0,0,1)), matrix);
-
+	//small cyan triangle
 	objID = 3;
-	glBindVertexArray(vao_ID[objID]);
-	glUseProgram(sp.programID);
+	toGLFormat(mat4_translation(0.0f, -1.0f + sqrt(2.0f) / 4.0f, 0)*mat4_rotation(90, vec3(0, 0, 1)), matrix);
+	drawObj(3);
 
-	glUniformMatrix4fv(UniformId, 1, GL_TRUE, matrix);
-	glDrawElements(GL_TRIANGLES, 3, GL_UNSIGNED_BYTE, (GLvoid*)0);
-
-
-	//small triangle
-
-	toGLFormat(mat4_identity(), matrix);
-
+	//small magenta triangle
 	objID = 4;
-	glBindVertexArray(vao_ID[objID]);
-	glUseProgram(sp.programID);
+	toGLFormat(mat4_translation(0, -1.0f + sqrt(2.0f)/4.0f, 0), matrix);
+	drawObj(3);
 
-	glUniformMatrix4fv(UniformId, 1, GL_TRUE, matrix);
-	glDrawElements(GL_TRIANGLES, 3, GL_UNSIGNED_BYTE, (GLvoid*)0);
-
-	// quad
-
-	toGLFormat(mat4_translation(0.25f, 0.0f, 0.0f)*mat4_rotation(45, vec3(0,0,1)), matrix);
-
+	// yellow quad
 	objID = 5; 
-	glBindVertexArray(vao_ID[objID]);
-	glUseProgram(sp.programID);
+	toGLFormat(mat4_scale(vec3(1.0f, 0.5f, 0.5f))*mat4_translation(0.0f, 1.3f, 0.0f), matrix);
+	drawObj(6);
 
-	glUniformMatrix4fv(UniformId, 1, GL_TRUE, matrix);
-	glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_BYTE, (GLvoid*)0); 
-
-	// parallelogram
-
-	toGLFormat(mat4_translation(-0.25f / 2.0f, -0.75f / 2.0f, 0.0f), matrix);
-
+	// orange parallelogram
 	objID = 6; 
-	glBindVertexArray(vao_ID[objID]);
-	glUseProgram(sp.programID);
-
-	glUniformMatrix4fv(UniformId, 1, GL_TRUE, matrix);
-	glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_BYTE, (GLvoid*)0);
+	toGLFormat(mat4_translation(0.0f, 0.9f, 0.0f)*mat4_rotation(90, vec3(0,0,1))*mat4_scale(vec3(0.5f,0.5f,0.5f)), matrix);
+	drawObj(6);
 
 	glUseProgram(0);
 	glBindVertexArray(0);

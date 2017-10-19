@@ -50,3 +50,91 @@ void Shader::setAttributeName(AttributeType at, std::string name) {
 void Shader::linkProgram() {
 	glLinkProgram(programID);
 }
+
+void Shader::shaderInfoLog(Shader::ShaderType st) {
+	int logLen = 0;
+	int charsWritten = 0;
+	char *infoLog;
+
+	std::string log;
+
+	if (shaders[st]) {
+		glGetShaderiv(shaders[st], GL_INFO_LOG_LENGTH, &logLen);
+
+		if (logLen > 0)
+		{
+			infoLog = (char *)malloc(logLen);
+			glGetShaderInfoLog(shaders[st], logLen, &charsWritten, infoLog);
+			if (charsWritten)
+				log = infoLog;
+			free(infoLog);
+		}
+		else {
+			log = "Shader loaded, no info log.";
+		}
+	}
+	else
+		log = "Shader not loaded.";
+
+	std::cout << log << std::endl;
+}
+
+void Shader::programInfoLog() {
+
+	int logLen = 0;
+	int charsWritten = 0;
+	char *infoLog;
+
+	std::string log = "Program created, no info log.";;
+
+	if (programID) {
+		glGetProgramiv(programID, GL_INFO_LOG_LENGTH, &logLen);
+
+		if (logLen > 0)
+		{
+			infoLog = (char *)malloc(logLen);
+			glGetProgramInfoLog(programID, logLen, &charsWritten, infoLog);
+			if (charsWritten)
+				log = infoLog;
+			free(infoLog);
+		}
+	}
+
+	std::cout << log << std::endl;
+
+}
+
+bool Shader::isShaderCompiled(Shader::ShaderType st) {
+
+	GLint b = GL_FALSE;
+
+	if (shaders[st]) {
+
+		glGetShaderiv(shaders[st], GL_COMPILE_STATUS, &b);
+	}
+
+	return (b != GL_FALSE);
+}
+
+bool Shader::isLinked() {
+
+	GLint b = GL_FALSE;
+
+	if (programID) {
+
+		glGetProgramiv(programID, GL_LINK_STATUS, &b);
+	}
+	return (b != GL_FALSE);
+}
+
+bool Shader::isValid() {
+	GLint b = GL_FALSE;
+
+	if (programID) {
+
+		glValidateProgram(programID);
+		glGetProgramiv(programID, GL_VALIDATE_STATUS, &b);
+	}
+
+	return (b != GL_FALSE);
+}
