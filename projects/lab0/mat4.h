@@ -6,6 +6,7 @@
 #include "GL/glew.h"
 
 #define THRESHOLD 0.00001f
+#define PI 3.14159265358979323846f
 
 class mat4 {
 
@@ -32,6 +33,9 @@ public:
 	friend mat4 mat4_rotation(float angle, vec3 axis); //vec3 or vec4? ?
 	friend mat4 mat4_translation(float x, float y, float z);
 	friend mat4 mat4_translation(vec3 v);
+	friend mat4 lookAt(vec3 pos, vec3 look, vec3 up);
+	friend mat4 perspective(float fov, float ratio, float near, float far);
+	friend mat4 ortho(float left, float right, float bottom, float top, float near, float far);
 
 	//subscript operator
 	float* operator[](int); //returns the row: a float array

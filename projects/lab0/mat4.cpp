@@ -126,6 +126,79 @@ mat4 mat4_translation(vec3 v) {
 	return mat;
 }
 
+mat4 lookAt(vec3 pos, vec3 look, vec3 up) {
+	vec3 dir, right;
+
+	dir = look - pos;
+	dir.normalize();
+
+	right = dir.cross(up);
+	right.normalize();
+
+	up = right.cross(dir);
+	up.normalize();
+
+	mat4 m1, m2;
+
+	m1[0][0] = right.x;
+	m1[0][1] = right.y;
+	m1[0][2] = right.z;
+	m1[0][3] = 0.0f;
+
+	m1[1][0] = up.x;
+	m1[1][1] = up.y;
+	m1[1][2] = up.z;
+	m1[1][3] = 0.0f;
+
+	m1[2][0] = -dir.x;
+	m1[2][1] = -dir.y;
+	m1[2][2] = -dir.z;
+	m1[2][3] = 0.0f;
+
+	m1[3][0] = 0.0f;
+	m1[3][1] = 0.0f;
+	m1[3][2] = 0.0f;
+	m1[3][3] = 1.0f;
+
+	m2 = mat4_translation(vec3(-pos.x, -pos.y, -pos.z));
+
+	return m1*m2;
+}
+
+
+//ratio: width / height
+mat4 perspective(float fov, float aspect, float near, float far) {
+
+	float f = 1.0f / tan(fov * (PI / 360.0f));
+
+	mat4 res = mat4_identity();
+
+	res[0][0] = f / aspect;
+	res[1][1] = f;
+	res[2][2] = (far + near) / (near - far);
+	res[2][3] = (2 * far*near) / (near - far);
+	res[3][2] = -1.0f;
+	res[3][3] = 0.0f;
+
+	return res;
+}
+
+mat4 ortho(float left, float right, float bottom, float top, float near, float far) {
+
+	mat4 res = mat4_identity();
+
+	res[0][0] = 1.0f / ((right - left) / 2.0f);
+	res[1][1] = 1.0f / ((top - bottom) / 2.0f);
+	res[2][2] = -1.0f / ((far - near) / 2.0f);
+
+	res[0][3] = -(right + left) / (right - left);
+	res[1][3] = -(top + bottom) / (top - bottom);
+	res[2][3] = -(far + near) / (far - near);
+
+	return res;
+	
+}
+
 float* mat4::operator [](int i) {
 
 	if (i > 3)
@@ -199,10 +272,10 @@ bool mat4::operator!= (const mat4 &m) {
 }
 
 std::ostream& operator << (std::ostream &output, const mat4 &m) {
-	output << "[" << roundf(m.mat[0][0]) << " " << roundf(m.mat[0][1]) << " " << roundf(m.mat[0][2]) << " " << roundf(m.mat[0][3]) << "]" << std::endl
-		<< "[" << roundf(m.mat[1][0]) << " " << roundf(m.mat[1][1]) << " " << roundf(m.mat[1][2]) << " " << roundf(m.mat[1][3]) << "]" << std::endl
-		<< "[" << roundf(m.mat[2][0]) << " " << roundf(m.mat[2][1]) << " " << roundf(m.mat[2][2]) << " " << roundf(m.mat[2][3]) << "]" << std::endl
-		<< "[" << roundf(m.mat[3][0]) << " " << roundf(m.mat[3][1]) << " " << roundf(m.mat[3][2]) << " " << roundf(m.mat[3][3]) << "]" << std::endl;
+	output << "[" << m.mat[0][0] << " " << m.mat[0][1] << " " << m.mat[0][2] << " " << m.mat[0][3] << "]" << std::endl
+		<< "[" << m.mat[1][0] << " " << m.mat[1][1] << " " << m.mat[1][2] << " " << m.mat[1][3] << "]" << std::endl
+		<< "[" << m.mat[2][0] << " " << m.mat[2][1] << " " << m.mat[2][2] << " " << m.mat[2][3] << "]" << std::endl
+		<< "[" << m.mat[3][0] << " " << m.mat[3][1] << " " << m.mat[3][2] << " " << m.mat[3][3] << "]" << std::endl;
 
 	return output;
 }

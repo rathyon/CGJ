@@ -4,9 +4,11 @@ in vec4 in_Position;
 in vec4 in_Color;
 out vec4 ex_color;
 
-uniform mat4 Matrix;
+uniform mat4 ModelMatrix;
+uniform mat4 ViewMatrix;
+uniform mat4 ProjectionMatrix;
 
 void main(void){
-	gl_Position = Matrix * in_Position;
+	gl_Position = ProjectionMatrix * ViewMatrix * ModelMatrix * in_Position;
 	ex_color = in_Color;
 }

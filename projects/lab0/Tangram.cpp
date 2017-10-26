@@ -1,22 +1,26 @@
 ///////////////////////////////////////////////////////////////////////
 //
-// Drawing two instances of a triangle in Modern OpenGL.
-// A "hello world" of Modern OpenGL.
+// Assignment consists in the following:
 //
-// Assignment : Create Shader Abstraction 
-//					(e.g. check compilation/linkage for errors, read from file) 
-//			  : Manage Multiple Drawable Entities (using your vertex and matrix classes)
-//              Draw a set of 7 TANs (i.e. TANGRAM shapes) of different colors: 
-//              (1) 3 different TAN geometric shapes at the origin:
-//					- right triangle
-//					- square
-//					- parallelogram
-//              (2) 7 TANs of different colors put together to form a shape of your choice:
-//					- 2 big right triangles
-//					- 1 medium right triangle
-//					- 2 small right triangles
-//					- 1 square
-//					- 1 parallelogram;
+// - Create the following changes to your scene, making it fully 3D:
+//   - Extrude your TANs into the 3rd dimension. The TANs should have
+//     slightly different "heights".
+//   - The new faces of each TAN should share the same hue as the 
+//     original top face color but have different levels of saturation 
+//     and brightness.
+//
+// - Add the following functionality:
+//   - Create a View Matrix from (eye, center, up) parameters.
+//   - Create an Orthographic Projection Matrix from (left-right, 
+//     bottom-top, near-far) parameters.
+//   - Create a Perspective Projection Matrix from (fovy, aspect,
+//     nearZ, farZ) parameters.
+//
+// - Add the following dynamics to the application:
+//   - Create a free 3D camera controlled by the mouse allowing to 
+//     visualize the scene through all its angles.
+//   - Change perspective from orthographic to perspective and back as
+//     a response to pressing the key 'p'.
 //
 // (c) 2013-17 by Carlos Martinho
 //
@@ -35,12 +39,18 @@
 #include "Shader.h"
 
 #define PRINT(s) std::cout << s << std::endl;
+#define PERSPECTIVE 0
+#define ORTHOGRAPHIC 1
 
-#define CAPTION "Hello Modern 2D World"
+#define CAPTION "3D Tangram Visualization"
 
-int WinX = 640, WinY = 640;
+int WinX = 640, WinY = 480;
 int WindowHandle = 0;
 unsigned int FrameCount = 0;
+
+//mouse variables
+
+int startX, startY, tracking = 0;
 
 #define VERTICES 0
 #define COLORS 1
@@ -55,10 +65,366 @@ float matrix[16];
 GLuint vao_ID[objCount];
 GLuint vbo_ID[objCount][2];
 
+GLint ModelMatrix_ID;
+GLint ViewMatrix_ID;
+GLint ProjectionMatrix_ID;
 
+mat4 ModelMatrix;
+mat4 ViewMatrix;
+mat4 ProjectionMatrix;
 
-GLuint VertexShaderId, FragmentShaderId, ProgramId;
-GLint UniformId;
+vec3 camPos = vec3(0.0f, 0.0f, 5.0f);
+vec3 camFocus = vec3(0.0f);
+float camAngle = 30.0f;
+float camPitch = 0.0f;
+
+bool camForward = false;
+bool camBackward = false;
+
+int cameraType = ORTHOGRAPHIC;
+
+// unused
+GLuint VertexShaderId, FragmentShaderId, ProgramId; // please remove these!
+
+/////////////////////////////////////////////////////////////////////// MESH DATA
+
+typedef struct
+{
+	GLfloat XYZW[4];
+	GLfloat RGBA[4];
+} Vertex;
+
+//red
+Vertex tri1[] =
+{
+	/*0*/{ { -(sqrt(2.0f) / 4.0f), -(sqrt(2.0f) / 4.0f), 0.0f, 1.0f },{ 1.0f, 0.0f, 0.0f, 1.0f } },
+	/*1*/{ { (sqrt(2.0f) / 4.0f), -(sqrt(2.0f) / 4.0f), 0.0f, 1.0f },{ 1.0f, 0.0f, 0.0f, 1.0f } },
+	/*2*/{ { 0.0f, 0.0f, 0.0f, 1.0f },{ 1.0f, 0.0f, 0.0f, 1.0f } },
+
+	/*0*/{ { -(sqrt(2.0f) / 4.0f), -(sqrt(2.0f) / 4.0f), 0.0f, 1.0f },{ 1.0f, 0.0f, 0.0f, 1.0f } },
+	/*3*/{ { -(sqrt(2.0f) / 4.0f), -(sqrt(2.0f) / 4.0f), -0.2f, 1.0f },{ 0.5f, 0.0f, 0.0f, 1.0f } },
+	/*4*/{ { (sqrt(2.0f) / 4.0f), -(sqrt(2.0f) / 4.0f), -0.2f, 1.0f },{ 0.5f, 0.0f, 0.0f, 1.0f } },
+
+	/*0*/{ { -(sqrt(2.0f) / 4.0f), -(sqrt(2.0f) / 4.0f), 0.0f, 1.0f },{ 1.0f, 0.0f, 0.0f, 1.0f } }, 
+	/*4*/{ { (sqrt(2.0f) / 4.0f), -(sqrt(2.0f) / 4.0f), -0.2f, 1.0f },{ 0.5f, 0.0f, 0.0f, 1.0f } },
+	/*1*/{ { (sqrt(2.0f) / 4.0f), -(sqrt(2.0f) / 4.0f), 0.0f, 1.0f },{ 1.0f, 0.0f, 0.0f, 1.0f } },
+
+	/*1*/{ { (sqrt(2.0f) / 4.0f), -(sqrt(2.0f) / 4.0f), 0.0f, 1.0f },{ 1.0f, 0.0f, 0.0f, 1.0f } },
+	/*4*/{ { (sqrt(2.0f) / 4.0f), -(sqrt(2.0f) / 4.0f), -0.2f, 1.0f },{ 0.5f, 0.0f, 0.0f, 1.0f } },
+	/*5*/{ { 0.0f, 0.0f, -0.2f, 1.0f },{ 0.5f, 0.0f, 0.0f, 1.0f } },
+
+	/*1*/{ { (sqrt(2.0f) / 4.0f), -(sqrt(2.0f) / 4.0f), 0.0f, 1.0f },{ 1.0f, 0.0f, 0.0f, 1.0f } },
+	/*5*/{ { 0.0f, 0.0f, -0.2f, 1.0f },{ 0.5f, 0.0f, 0.0f, 1.0f } },
+	/*2*/{ { 0.0f, 0.0f, 0.0f, 1.0f },{ 1.0f, 0.0f, 0.0f, 1.0f } },
+
+	/*2*/{ { 0.0f, 0.0f, 0.0f, 1.0f },{ 1.0f, 0.0f, 0.0f, 1.0f } },
+	/*5*/{ { 0.0f, 0.0f, -0.2f, 1.0f },{ 0.5f, 0.0f, 0.0f, 1.0f } },
+	/*3*/{ { -(sqrt(2.0f) / 4.0f), -(sqrt(2.0f) / 4.0f), -0.2f, 1.0f },{ 0.5f, 0.0f, 0.0f, 1.0f } },
+
+	/*2*/{ { 0.0f, 0.0f, 0.0f, 1.0f },{ 1.0f, 0.0f, 0.0f, 1.0f } },
+	/*3*/{ { -(sqrt(2.0f) / 4.0f), -(sqrt(2.0f) / 4.0f), -0.2f, 1.0f },{ 0.5f, 0.0f, 0.0f, 1.0f } },
+	/*0*/{ { -(sqrt(2.0f) / 4.0f), -(sqrt(2.0f) / 4.0f), 0.0f, 1.0f },{ 1.0f, 0.0f, 0.0f, 1.0f } },
+
+	/*3*/{ { -(sqrt(2.0f) / 4.0f), -(sqrt(2.0f) / 4.0f), -0.2f, 1.0f },{ 0.5f, 0.0f, 0.0f, 1.0f } },
+	/*5*/{ { 0.0f, 0.0f, -0.2f, 1.0f },{ 0.5f, 0.0f, 0.0f, 1.0f } },
+	/*4*/{ { (sqrt(2.0f) / 4.0f), -(sqrt(2.0f) / 4.0f), -0.2f, 1.0f },{ 0.5f, 0.0f, 0.0f, 1.0f } },
+
+	/*{ { -(sqrt(2.0f) / 4.0f), -(sqrt(2.0f) / 4.0f), -2.0f, 1.0f },{ 0.5f, 0.0f, 0.0f, 1.0f } }, // 3
+	{ { (sqrt(2.0f) / 4.0f), -(sqrt(2.0f) / 4.0f), -2.0f, 1.0f },{ 0.5f, 0.0f, 0.0f, 1.0f } }, // 4
+	{ { 0.0f, 0.0f, -2.0f, 1.0f },{ 0.5f, 0.0f, 0.0f, 1.0f } } // 5*/
+};
+
+GLubyte tri_i[] =
+{
+	0,1,2,
+	0,3,4,
+	0,4,1,
+	1,4,5,
+	1,5,2,
+	2,5,3,
+	2,3,0,
+	3,5,4
+};
+
+//green
+Vertex tri2[] =
+{
+	/*0*/{ { -0.5f, -0.5f, 0.0f, 1.0f },{ 0.0f, 1.0f, 0.0f, 1.0f } },
+	/*1*/{ { 0.5f, -0.5f, 0.0f, 1.0f },{ 0.0f, 1.0f, 0.0f, 1.0f } },
+	/*2*/{ { 0.0f, 0.0f, 0.0f, 1.0f },{ 0.0f, 1.0f, 0.0f, 1.0f } },
+
+	/*0*/{ { -0.5f, -0.5f, 0.0f, 1.0f },{ 0.0f, 1.0f, 0.0f, 1.0f } },
+	/*3*/{ { -0.5f, -0.5f, -0.2f, 1.0f },{ 0.0f, 0.5f, 0.0f, 1.0f } },
+	/*4*/{ { 0.5f, -0.5f, -0.2f, 1.0f },{ 0.0f, 0.5f, 0.0f, 1.0f } },
+
+	/*0*/{ { -0.5f, -0.5f, 0.0f, 1.0f },{ 0.0f, 1.0f, 0.0f, 1.0f } },
+	/*4*/{ { 0.5f, -0.5f, -0.2f, 1.0f },{ 0.0f, 0.5f, 0.0f, 1.0f } },
+	/*1*/{ { 0.5f, -0.5f, 0.0f, 1.0f },{ 0.0f, 1.0f, 0.0f, 1.0f } },
+
+	/*1*/{ { 0.5f, -0.5f, 0.0f, 1.0f },{ 0.0f, 1.0f, 0.0f, 1.0f } },
+	/*4*/{ { 0.5f, -0.5f, -0.2f, 1.0f },{ 0.0f, 0.5f, 0.0f, 1.0f } },
+	/*5*/{ { 0.0f, 0.0f, -0.2f, 1.0f },{ 0.0f, 0.5f, 0.0f, 1.0f } },
+
+	/*1*/{ { 0.5f, -0.5f, 0.0f, 1.0f },{ 0.0f, 1.0f, 0.0f, 1.0f } },
+	/*5*/{ { 0.0f, 0.0f, -0.2f, 1.0f },{ 0.0f, 0.5f, 0.0f, 1.0f } },
+	/*2*/{ { 0.0f, 0.0f, 0.0f, 1.0f },{ 0.0f, 1.0f, 0.0f, 1.0f } },
+
+	/*2*/{ { 0.0f, 0.0f, 0.0f, 1.0f },{ 0.0f, 1.0f, 0.0f, 1.0f } },
+	/*5*/{ { 0.0f, 0.0f, -0.2f, 1.0f },{ 0.0f, 0.5f, 0.0f, 1.0f } },
+	/*3*/{ { -0.5f, -0.5f, -0.2f, 1.0f },{ 0.0f, 0.5f, 0.0f, 1.0f } },
+
+	/*2*/{ { 0.0f, 0.0f, 0.0f, 1.0f },{ 0.0f, 1.0f, 0.0f, 1.0f } },
+	/*3*/{ { -0.5f, -0.5f, -0.2f, 1.0f },{ 0.0f, 0.5f, 0.0f, 1.0f } },
+	/*0*/{ { -0.5f, -0.5f, 0.0f, 1.0f },{ 0.0f, 1.0f, 0.0f, 1.0f } },
+
+	/*3*/{ { -0.5f, -0.5f, -0.2f, 1.0f },{ 0.0f, 0.5f, 0.0f, 1.0f } },
+	/*5*/{ { 0.0f, 0.0f, -0.2f, 1.0f },{ 0.0f, 0.5f, 0.0f, 1.0f } },
+	/*4*/{ { 0.5f, -0.5f, -0.2f, 1.0f },{ 0.0f, 0.5f, 0.0f, 1.0f } },
+	
+};
+
+//blue
+Vertex tri3[] =
+{
+	/*0*/{ { -0.5f, -0.5f, 0.0f, 1.0f },{ 0.0f, 0.0f, 1.0f, 1.0f } },
+	/*1*/{ { 0.5f, -0.5f, 0.0f, 1.0f },{ 0.0f, 0.0f, 1.0f, 1.0f } },
+	/*2*/{ { 0.0f, 0.0f, 0.0f, 1.0f },{ 0.0f, 0.0f, 1.0f, 1.0f } },
+
+	/*0*/{ { -0.5f, -0.5f, 0.0f, 1.0f },{ 0.0f, 0.0f, 1.0f, 1.0f } },
+	/*3*/{ { -0.5f, -0.5f, -0.2f, 1.0f },{ 0.0f, 0.0f, 0.5f, 1.0f } },
+	/*4*/{ { 0.5f, -0.5f, -0.2f, 1.0f },{ 0.0f, 0.0f, 0.5f, 1.0f } },
+
+	/*0*/{ { -0.5f, -0.5f, 0.0f, 1.0f },{ 0.0f, 0.0f, 1.0f, 1.0f } },
+	/*4*/{ { 0.5f, -0.5f, -0.2f, 1.0f },{ 0.0f, 0.0f, 0.5f, 1.0f } },
+	/*1*/{ { 0.5f, -0.5f, 0.0f, 1.0f },{ 0.0f, 0.0f, 1.0f, 1.0f } },
+
+	/*1*/{ { 0.5f, -0.5f, 0.0f, 1.0f },{ 0.0f, 0.0f, 1.0f, 1.0f } },
+	/*4*/{ { 0.5f, -0.5f, -0.2f, 1.0f },{ 0.0f, 0.0f, 0.5f, 1.0f } },
+	/*5*/{ { 0.0f, 0.0f, -0.2f, 1.0f },{ 0.0f, 0.0f, 0.5f, 1.0f } },
+
+	/*1*/{ { 0.5f, -0.5f, 0.0f, 1.0f },{ 0.0f, 0.0f, 1.0f, 1.0f } },
+	/*5*/{ { 0.0f, 0.0f, -0.2f, 1.0f },{ 0.0f, 0.0f, 0.5f, 1.0f } },
+	/*2*/{ { 0.0f, 0.0f, 0.0f, 1.0f },{ 0.0f, 0.0f, 1.0f, 1.0f } },
+
+	/*2*/{ { 0.0f, 0.0f, 0.0f, 1.0f },{ 0.0f, 0.0f, 1.0f, 1.0f } },
+	/*5*/{ { 0.0f, 0.0f, -0.2f, 1.0f },{ 0.0f, 0.0f, 0.5f, 1.0f } },
+	/*3*/{ { -0.5f, -0.5f, -0.2f, 1.0f },{ 0.0f, 0.0f, 0.5f, 1.0f } },
+
+	/*2*/{ { 0.0f, 0.0f, 0.0f, 1.0f },{ 0.0f, 0.0f, 1.0f, 1.0f } },
+	/*3*/{ { -0.5f, -0.5f, -0.2f, 1.0f },{ 0.0f, 0.0f, 0.5f, 1.0f } },
+	/*0*/{ { -0.5f, -0.5f, 0.0f, 1.0f },{ 0.0f, 0.0f, 1.0f, 1.0f } },
+
+	/*3*/{ { -0.5f, -0.5f, -0.2f, 1.0f },{ 0.0f, 0.0f, 0.5f, 1.0f } },
+	/*5*/{ { 0.0f, 0.0f, -0.2f, 1.0f },{ 0.0f, 0.0f, 0.5f, 1.0f } },
+	/*4*/{ { 0.5f, -0.5f, -0.2f, 1.0f },{ 0.0f, 0.0f, 0.5f, 1.0f } },
+	
+};
+
+//cyan
+Vertex tri4[] =
+{
+	/*0*/{ { -0.25f, -0.25f, 0.0f, 1.0f },{ 0.0f, 1.0f, 1.0f, 1.0f } },
+	/*1*/{ { 0.25f, -0.25f, 0.0f, 1.0f },{ 0.0f, 1.0f, 1.0f, 1.0f } },
+	/*2*/{ { 0.0f, 0.0f, 0.0f, 1.0f },{ 0.0f, 1.0f, 1.0f, 1.0f } },
+
+	/*0*/{ { -0.25f, -0.25f, 0.0f, 1.0f },{ 0.0f, 1.0f, 1.0f, 1.0f } },
+	/*3*/{ { -0.25f, -0.25f, -0.2f, 1.0f },{ 0.0f, 0.5f, 0.5f, 1.0f } },
+	/*4*/{ { 0.25f, -0.25f, -0.2f, 1.0f },{ 0.0f, 0.5f, 0.5f, 1.0f } },
+
+	/*0*/{ { -0.25f, -0.25f, 0.0f, 1.0f },{ 0.0f, 1.0f, 1.0f, 1.0f } },
+	/*4*/{ { 0.25f, -0.25f, -0.2f, 1.0f },{ 0.0f, 0.5f, 0.5f, 1.0f } },
+	/*1*/{ { 0.25f, -0.25f, 0.0f, 1.0f },{ 0.0f, 1.0f, 1.0f, 1.0f } },
+
+	/*1*/{ { 0.25f, -0.25f, 0.0f, 1.0f },{ 0.0f, 1.0f, 1.0f, 1.0f } },
+	/*4*/{ { 0.25f, -0.25f, -0.2f, 1.0f },{ 0.0f, 0.5f, 0.5f, 1.0f } },
+	/*5*/{ { 0.0f, 0.0f, -0.2f, 1.0f },{ 0.0f, 0.5f, 0.5f, 1.0f } },
+
+	/*1*/{ { 0.25f, -0.25f, 0.0f, 1.0f },{ 0.0f, 1.0f, 1.0f, 1.0f } },
+	/*5*/{ { 0.0f, 0.0f, -0.2f, 1.0f },{ 0.0f, 0.5f, 0.5f, 1.0f } },
+	/*2*/{ { 0.0f, 0.0f, 0.0f, 1.0f },{ 0.0f, 1.0f, 1.0f, 1.0f } },
+
+	/*2*/{ { 0.0f, 0.0f, 0.0f, 1.0f },{ 0.0f, 1.0f, 1.0f, 1.0f } },
+	/*5*/{ { 0.0f, 0.0f, -0.2f, 1.0f },{ 0.0f, 0.5f, 0.5f, 1.0f } },
+	/*3*/{ { -0.25f, -0.25f, -0.2f, 1.0f },{ 0.0f, 0.5f, 0.5f, 1.0f } },
+
+	/*2*/{ { 0.0f, 0.0f, 0.0f, 1.0f },{ 0.0f, 1.0f, 1.0f, 1.0f } },
+	/*3*/{ { -0.25f, -0.25f, -0.2f, 1.0f },{ 0.0f, 0.5f, 0.5f, 1.0f } },
+	/*0*/{ { -0.25f, -0.25f, 0.0f, 1.0f },{ 0.0f, 1.0f, 1.0f, 1.0f } },
+
+	/*3*/{ { -0.25f, -0.25f, -0.2f, 1.0f },{ 0.0f, 0.5f, 0.5f, 1.0f } },
+	/*5*/{ { 0.0f, 0.0f, -0.2f, 1.0f },{ 0.0f, 0.5f, 0.5f, 1.0f } },
+	/*4*/{ { 0.25f, -0.25f, -0.2f, 1.0f },{ 0.0f, 0.5f, 0.5f, 1.0f } },
+};
+
+//magenta
+Vertex tri5[] =
+{
+	/*0*/{ { -0.25f, -0.25f, 0.0f, 1.0f },{ 1.0f, 0.0f, 1.0f, 1.0f } },
+	/*1*/{ { 0.25f, -0.25f, 0.0f, 1.0f },{ 1.0f, 0.0f, 1.0f, 1.0f } },
+	/*2*/{ { 0.0f, 0.0f, 0.0f, 1.0f },{ 1.0f, 0.0f, 1.0f, 1.0f } },
+
+	/*0*/{ { -0.25f, -0.25f, 0.0f, 1.0f },{ 1.0f, 0.0f, 1.0f, 1.0f } },
+	/*3*/{ { -0.25f, -0.25f, -0.2f, 1.0f },{ 0.5f, 0.0f, 0.5f, 1.0f } },
+	/*4*/{ { 0.25f, -0.25f, -0.2f, 1.0f },{ 0.5f, 0.0f, 0.5f, 1.0f } },
+
+	/*0*/{ { -0.25f, -0.25f, 0.0f, 1.0f },{ 1.0f, 0.0f, 1.0f, 1.0f } },
+	/*4*/{ { 0.25f, -0.25f, -0.2f, 1.0f },{ 0.5f, 0.0f, 0.5f, 1.0f } },
+	/*1*/{ { 0.25f, -0.25f, 0.0f, 1.0f },{ 1.0f, 0.0f, 1.0f, 1.0f } },
+
+	/*1*/{ { 0.25f, -0.25f, 0.0f, 1.0f },{ 1.0f, 0.0f, 1.0f, 1.0f } },
+	/*4*/{ { 0.25f, -0.25f, -0.2f, 1.0f },{ 0.5f, 0.0f, 0.5f, 1.0f } },
+	/*5*/{ { 0.0f, 0.0f, -0.2f, 1.0f },{ 0.5f, 0.0f, 0.5f, 1.0f } },
+
+	/*1*/{ { 0.25f, -0.25f, 0.0f, 1.0f },{ 1.0f, 0.0f, 1.0f, 1.0f } },
+	/*5*/{ { 0.0f, 0.0f, -0.2f, 1.0f },{ 0.5f, 0.0f, 0.5f, 1.0f } },
+	/*2*/{ { 0.0f, 0.0f, 0.0f, 1.0f },{ 1.0f, 0.0f, 1.0f, 1.0f } },
+
+	/*2*/{ { 0.0f, 0.0f, 0.0f, 1.0f },{ 1.0f, 0.0f, 1.0f, 1.0f } },
+	/*5*/{ { 0.0f, 0.0f, -0.2f, 1.0f },{ 0.5f, 0.0f, 0.5f, 1.0f } },
+	/*3*/{ { -0.25f, -0.25f, -0.2f, 1.0f },{ 0.5f, 0.0f, 0.5f, 1.0f } },
+
+	/*2*/{ { 0.0f, 0.0f, 0.0f, 1.0f },{ 1.0f, 0.0f, 1.0f, 1.0f } },
+	/*3*/{ { -0.25f, -0.25f, -0.2f, 1.0f },{ 0.5f, 0.0f, 0.5f, 1.0f } },
+	/*0*/{ { -0.25f, -0.25f, 0.0f, 1.0f },{ 1.0f, 0.0f, 1.0f, 1.0f } },
+
+	/*3*/{ { -0.25f, -0.25f, -0.2f, 1.0f },{ 0.5f, 0.0f, 0.5f, 1.0f } },
+	/*5*/{ { 0.0f, 0.0f, -0.2f, 1.0f },{ 0.5f, 0.0f, 0.5f, 1.0f } },
+	/*4*/{ { 0.25f, -0.25f, -0.2f, 1.0f },{ 0.5f, 0.0f, 0.5f, 1.0f } },
+};
+
+//yellow
+Vertex quad[] =
+{
+	/*0*/{ { -sqrt(2.0f) / 8.0f, -sqrt(2.0f) / 8.0f, 0.0f, 1.0f },{ 1.0f, 1.0f, 0.0f, 1.0f } },
+	/*1*/{ { sqrt(2.0f) / 8.0f, -sqrt(2.0f) / 8.0f, 0.0f, 1.0f },{ 1.0f, 1.0f, 0.0f, 1.0f } },
+	/*2*/{ { sqrt(2.0f) / 8.0f, sqrt(2.0f) / 8.0f, 0.0f, 1.0f },{ 1.0f, 1.0f, 0.0f, 1.0f } },
+
+	/*2*/{ { sqrt(2.0f) / 8.0f, sqrt(2.0f) / 8.0f, 0.0f, 1.0f },{ 1.0f, 1.0f, 0.0f, 1.0f } },
+	/*3*/{ { -sqrt(2.0f) / 8.0f, sqrt(2.0f) / 8.0f, 0.0f, 1.0f },{ 1.0f, 1.0f, 0.0f, 1.0f } },
+	/*0*/{ { -sqrt(2.0f) / 8.0f, -sqrt(2.0f) / 8.0f, 0.0f, 1.0f },{ 1.0f, 1.0f, 0.0f, 1.0f } },
+
+	/*0*/{ { -sqrt(2.0f) / 8.0f, -sqrt(2.0f) / 8.0f, 0.0f, 1.0f },{ 1.0f, 1.0f, 0.0f, 1.0f } },
+	/*4*/{ { -sqrt(2.0f) / 8.0f, -sqrt(2.0f) / 8.0f, -0.2f, 1.0f },{ 0.5f, 0.5f, 0.0f, 1.0f } },
+	/*1*/{ { sqrt(2.0f) / 8.0f, -sqrt(2.0f) / 8.0f, 0.0f, 1.0f },{ 1.0f, 1.0f, 0.0f, 1.0f } },
+
+	/*4*/{ { -sqrt(2.0f) / 8.0f, -sqrt(2.0f) / 8.0f, -0.2f, 1.0f },{ 0.5f, 0.5f, 0.0f, 1.0f } },
+	/*5*/{ { sqrt(2.0f) / 8.0f, -sqrt(2.0f) / 8.0f, -0.2f, 1.0f },{ 0.5f, 0.5f, 0.0f, 1.0f } },
+	/*1*/{ { sqrt(2.0f) / 8.0f, -sqrt(2.0f) / 8.0f, 0.0f, 1.0f },{ 1.0f, 1.0f, 0.0f, 1.0f } },
+
+	/*1*/{ { sqrt(2.0f) / 8.0f, -sqrt(2.0f) / 8.0f, 0.0f, 1.0f },{ 1.0f, 1.0f, 0.0f, 1.0f } },
+	/*5*/{ { sqrt(2.0f) / 8.0f, -sqrt(2.0f) / 8.0f, -0.2f, 1.0f },{ 0.5f, 0.5f, 0.0f, 1.0f } },
+	/*2*/{ { sqrt(2.0f) / 8.0f, sqrt(2.0f) / 8.0f, 0.0f, 1.0f },{ 1.0f, 1.0f, 0.0f, 1.0f } },
+
+	/*5*/{ { sqrt(2.0f) / 8.0f, -sqrt(2.0f) / 8.0f, -0.2f, 1.0f },{ 0.5f, 0.5f, 0.0f, 1.0f } },
+	/*6*/{ { sqrt(2.0f) / 8.0f, sqrt(2.0f) / 8.0f, -0.2f, 1.0f },{ 0.5f, 0.5f, 0.0f, 1.0f } },
+	/*2*/{ { sqrt(2.0f) / 8.0f, sqrt(2.0f) / 8.0f, 0.0f, 1.0f },{ 1.0f, 1.0f, 0.0f, 1.0f } },
+
+	/*2*/{ { sqrt(2.0f) / 8.0f, sqrt(2.0f) / 8.0f, 0.0f, 1.0f },{ 1.0f, 1.0f, 0.0f, 1.0f } },
+	/*6*/{ { sqrt(2.0f) / 8.0f, sqrt(2.0f) / 8.0f, -0.2f, 1.0f },{ 0.5f, 0.5f, 0.0f, 1.0f } },
+	/*3*/{ { -sqrt(2.0f) / 8.0f, sqrt(2.0f) / 8.0f, 0.0f, 1.0f },{ 1.0f, 1.0f, 0.0f, 1.0f } },
+
+	/*6*/{ { sqrt(2.0f) / 8.0f, sqrt(2.0f) / 8.0f, -0.2f, 1.0f },{ 0.5f, 0.5f, 0.0f, 1.0f } },
+	/*7*/{ { -sqrt(2.0f) / 8.0f, sqrt(2.0f) / 8.0f, -0.2f, 1.0f },{ 0.5f, 0.5f, 0.0f, 1.0f } },
+	/*3*/{ { -sqrt(2.0f) / 8.0f, sqrt(2.0f) / 8.0f, 0.0f, 1.0f },{ 1.0f, 1.0f, 0.0f, 1.0f } },
+
+	/*3*/{ { -sqrt(2.0f) / 8.0f, sqrt(2.0f) / 8.0f, 0.0f, 1.0f },{ 1.0f, 1.0f, 0.0f, 1.0f } },
+	/*7*/{ { -sqrt(2.0f) / 8.0f, sqrt(2.0f) / 8.0f, -0.2f, 1.0f },{ 0.5f, 0.5f, 0.0f, 1.0f } },
+	/*0*/{ { -sqrt(2.0f) / 8.0f, -sqrt(2.0f) / 8.0f, 0.0f, 1.0f },{ 1.0f, 1.0f, 0.0f, 1.0f } },
+
+	/*7*/{ { -sqrt(2.0f) / 8.0f, sqrt(2.0f) / 8.0f, -0.2f, 1.0f },{ 0.5f, 0.5f, 0.0f, 1.0f } },
+	/*4*/{ { -sqrt(2.0f) / 8.0f, -sqrt(2.0f) / 8.0f, -0.2f, 1.0f },{ 0.5f, 0.5f, 0.0f, 1.0f } },
+	/*0*/{ { -sqrt(2.0f) / 8.0f, -sqrt(2.0f) / 8.0f, 0.0f, 1.0f },{ 1.0f, 1.0f, 0.0f, 1.0f } },
+
+	/*4*/{ { -sqrt(2.0f) / 8.0f, -sqrt(2.0f) / 8.0f, -0.2f, 1.0f },{ 0.5f, 0.5f, 0.0f, 1.0f } },
+	/*7*/{ { -sqrt(2.0f) / 8.0f, sqrt(2.0f) / 8.0f, -0.2f, 1.0f },{ 0.5f, 0.5f, 0.0f, 1.0f } },
+	/*6*/{ { sqrt(2.0f) / 8.0f, sqrt(2.0f) / 8.0f, -0.2f, 1.0f },{ 0.5f, 0.5f, 0.0f, 1.0f } },
+
+	/*6*/{ { sqrt(2.0f) / 8.0f, sqrt(2.0f) / 8.0f, -0.2f, 1.0f },{ 0.5f, 0.5f, 0.0f, 1.0f } },
+	/*5*/{ { sqrt(2.0f) / 8.0f, -sqrt(2.0f) / 8.0f, -0.2f, 1.0f },{ 0.5f, 0.5f, 0.0f, 1.0f } },
+	/*4*/{ { -sqrt(2.0f) / 8.0f, -sqrt(2.0f) / 8.0f, -0.2f, 1.0f },{ 0.5f, 0.5f, 0.0f, 1.0f } },
+
+};
+
+GLubyte quad_i[] =
+{
+	//top
+	0,1,2,
+	2,3,0,
+
+	//front
+	0,4,1,
+	4,5,1,
+
+	//right
+	1,5,2,
+	5,6,2,
+
+	//back
+	2,6,3,
+	6,7,3,
+
+	//left
+	3,7,0,
+	7,4,0,
+
+	//bottom
+	4,7,6,
+	6,5,4
+};
+
+//orange
+Vertex para[] =
+{
+	/*0*/{ { -((1.0f / 4.0f) + 0.125f), -0.125f, 0.0f, 1.0f },{ 1.0f, 0.5f, 0.0f, 1.0f } },
+	/*1*/{ { 1.0f / 4.0f - 0.125f, -0.125f, 0.0f, 1.0f },{ 1.0f, 0.5f, 0.0f, 1.0f } },
+	/*2*/{ { 1.0f / 4.0f + 0.125f, 0.125f, 0.0f, 1.0f },{ 1.0f, 0.5f, 0.0f, 1.0f } },
+
+	/*2*/{ { 1.0f / 4.0f + 0.125f, 0.125f, 0.0f, 1.0f },{ 1.0f, 0.5f, 0.0f, 1.0f } },
+	/*3*/{ { -(1.0f / 4.0f - 0.125f), 0.125f, 0.0f, 1.0f },{ 1.0f, 0.5f, 0.0f, 1.0f } },
+	/*0*/{ { -((1.0f / 4.0f) + 0.125f), -0.125f, 0.0f, 1.0f },{ 1.0f, 0.5f, 0.0f, 1.0f } },
+
+	/*0*/{ { -((1.0f / 4.0f) + 0.125f), -0.125f, 0.0f, 1.0f },{ 1.0f, 0.5f, 0.0f, 1.0f } },
+	/*4*/{ { -((1.0f / 4.0f) + 0.125f), -0.125f, -0.2f, 1.0f },{ 0.5f, 0.25f, 0.0f, 1.0f } },
+	/*1*/{ { 1.0f / 4.0f - 0.125f, -0.125f, 0.0f, 1.0f },{ 1.0f, 0.5f, 0.0f, 1.0f } },
+
+	/*4*/{ { -((1.0f / 4.0f) + 0.125f), -0.125f, -0.2f, 1.0f },{ 0.5f, 0.25f, 0.0f, 1.0f } },
+	/*5*/{ { 1.0f / 4.0f - 0.125f, -0.125f, -0.2f, 1.0f },{ 0.5f, 0.25f, 0.0f, 1.0f } },
+	/*1*/{ { 1.0f / 4.0f - 0.125f, -0.125f, 0.0f, 1.0f },{ 1.0f, 0.5f, 0.0f, 1.0f } },
+
+	/*1*/{ { 1.0f / 4.0f - 0.125f, -0.125f, 0.0f, 1.0f },{ 1.0f, 0.5f, 0.0f, 1.0f } },
+	/*5*/{ { 1.0f / 4.0f - 0.125f, -0.125f, -0.2f, 1.0f },{ 0.5f, 0.25f, 0.0f, 1.0f } },
+	/*2*/{ { 1.0f / 4.0f + 0.125f, 0.125f, 0.0f, 1.0f },{ 1.0f, 0.5f, 0.0f, 1.0f } },
+
+	/*5*/{ { 1.0f / 4.0f - 0.125f, -0.125f, -0.2f, 1.0f },{ 0.5f, 0.25f, 0.0f, 1.0f } },
+	/*6*/{ { 1.0f / 4.0f + 0.125f, 0.125f, -0.2f, 1.0f },{ 0.5f, 0.25f, 0.0f, 1.0f } },
+	/*2*/{ { 1.0f / 4.0f + 0.125f, 0.125f, 0.0f, 1.0f },{ 1.0f, 0.5f, 0.0f, 1.0f } },
+
+	/*2*/{ { 1.0f / 4.0f + 0.125f, 0.125f, 0.0f, 1.0f },{ 1.0f, 0.5f, 0.0f, 1.0f } },
+	/*6*/{ { 1.0f / 4.0f + 0.125f, 0.125f, -0.2f, 1.0f },{ 0.5f, 0.25f, 0.0f, 1.0f } },
+	/*3*/{ { -(1.0f / 4.0f - 0.125f), 0.125f, 0.0f, 1.0f },{ 1.0f, 0.5f, 0.0f, 1.0f } },
+
+	/*6*/{ { 1.0f / 4.0f + 0.125f, 0.125f, -0.2f, 1.0f },{ 0.5f, 0.25f, 0.0f, 1.0f } },
+	/*7*/{ { -(1.0f / 4.0f - 0.125f), 0.125f, -0.2f, 1.0f },{ 0.5f, 0.25f, 0.0f, 1.0f } },
+	/*3*/{ { -(1.0f / 4.0f - 0.125f), 0.125f, 0.0f, 1.0f },{ 1.0f, 0.5f, 0.0f, 1.0f } },
+
+	/*3*/{ { -(1.0f / 4.0f - 0.125f), 0.125f, 0.0f, 1.0f },{ 1.0f, 0.5f, 0.0f, 1.0f } },
+	/*7*/{ { -(1.0f / 4.0f - 0.125f), 0.125f, -0.2f, 1.0f },{ 0.5f, 0.25f, 0.0f, 1.0f } },
+	/*0*/{ { -((1.0f / 4.0f) + 0.125f), -0.125f, 0.0f, 1.0f },{ 1.0f, 0.5f, 0.0f, 1.0f } },
+
+	/*7*/{ { -(1.0f / 4.0f - 0.125f), 0.125f, -0.2f, 1.0f },{ 0.5f, 0.25f, 0.0f, 1.0f } },
+	/*4*/{ { -((1.0f / 4.0f) + 0.125f), -0.125f, -0.2f, 1.0f },{ 0.5f, 0.25f, 0.0f, 1.0f } },
+	/*0*/{ { -((1.0f / 4.0f) + 0.125f), -0.125f, 0.0f, 1.0f },{ 1.0f, 0.5f, 0.0f, 1.0f } },
+
+	/*4*/{ { -((1.0f / 4.0f) + 0.125f), -0.125f, -0.2f, 1.0f },{ 0.5f, 0.25f, 0.0f, 1.0f } },
+	/*7*/{ { -(1.0f / 4.0f - 0.125f), 0.125f, -0.2f, 1.0f },{ 0.5f, 0.25f, 0.0f, 1.0f } },
+	/*6*/{ { 1.0f / 4.0f + 0.125f, 0.125f, -0.2f, 1.0f },{ 0.5f, 0.25f, 0.0f, 1.0f } },
+
+	/*6*/{ { 1.0f / 4.0f + 0.125f, 0.125f, -0.2f, 1.0f },{ 0.5f, 0.25f, 0.0f, 1.0f } },
+	/*5*/{ { 1.0f / 4.0f - 0.125f, -0.125f, -0.2f, 1.0f },{ 0.5f, 0.25f, 0.0f, 1.0f } },
+	/*4*/{ { -((1.0f / 4.0f) + 0.125f), -0.125f, -0.2f, 1.0f },{ 0.5f, 0.25f, 0.0f, 1.0f } },
+	
+};
+
 
 /////////////////////////////////////////////////////////////////////// ERRORS
 
@@ -85,36 +451,6 @@ void checkOpenGLError(std::string error)
 
 /////////////////////////////////////////////////////////////////////// SHADERs
 
-const GLchar* VertexShader =
-{
-	"#version 330 core\n"
-
-	"in vec4 in_Position;\n"
-	"in vec4 in_Color;\n"
-	"out vec4 ex_Color;\n"
-
-	"uniform mat4 Matrix;\n"
-
-	"void main(void)\n"
-	"{\n"
-	"	gl_Position = Matrix * in_Position;\n"
-	"	ex_Color = in_Color;\n"
-	"}\n"
-};
-
-const GLchar* FragmentShader =
-{
-	"#version 330 core\n"
-
-	"in vec4 ex_Color;\n"
-	"out vec4 out_Color;\n"
-
-	"void main(void)\n"
-	"{\n"
-	"	out_Color = ex_Color;\n"
-	"}\n"
-};
-
 void createShaderProgram()
 {
 	sp.init();
@@ -130,8 +466,11 @@ void createShaderProgram()
 	sp.setAttributeName(Shader::COLORS_ATTRIB, "in_Color");
 	sp.linkProgram();
 
-	UniformId = glGetUniformLocation(sp.programID, "Matrix");
+	ModelMatrix_ID = glGetUniformLocation(sp.programID, "ModelMatrix");
+	ViewMatrix_ID = glGetUniformLocation(sp.programID, "ViewMatrix");
+	ProjectionMatrix_ID = glGetUniformLocation(sp.programID, "ProjectionMatrix");
 
+	// error checking
 	sp.shaderInfoLog(Shader::VERTEX_SHADER);
 	sp.shaderInfoLog(Shader::FRAGMENT_SHADER);
 	sp.programInfoLog();
@@ -139,6 +478,7 @@ void createShaderProgram()
 	checkOpenGLError("ERROR: Could not create shaders.");
 }
 
+// unused: must correct
 void destroyShaderProgram()
 {
 	glUseProgram(0);
@@ -152,113 +492,14 @@ void destroyShaderProgram()
 	checkOpenGLError("ERROR: Could not destroy shaders.");
 }
 
-/////////////////////////////////////////////////////////////////////// MESH DATA
-
-typedef struct
-{
-	GLfloat XYZW[4];
-	GLfloat RGBA[4];
-} Vertex;
-
-//red
-Vertex tri1[] =
-{
-	{ { -(sqrt(2.0f)/4.0f), -(sqrt(2.0f) / 4.0f), 0.0f, 1.0f },{ 1.0f, 0.0f, 0.0f, 1.0f } },
-	{ { (sqrt(2.0f) / 4.0f), -(sqrt(2.0f) / 4.0f), 0.0f, 1.0f },{ 1.0f, 0.0f, 0.0f, 1.0f } },
-	{ { 0.0f, 0.0f, 0.0f, 1.0f },{ 1.0f, 0.0f, 0.0f, 1.0f } }
-};
-
-GLubyte tri1_i[] =
-{
-	0,1,2
-};
-
-//green
-Vertex tri2[] =
-{
-	{ { -0.5f, -0.5f, 0.0f, 1.0f },{ 0.0f, 1.0f, 0.0f, 1.0f } },
-	{ { 0.5f, -0.5f, 0.0f, 1.0f },{ 0.0f, 1.0f, 0.0f, 1.0f } },
-	{ { 0.0f, 0.0f, 0.0f, 1.0f },{ 0.0f, 1.0f, 0.0f, 1.0f } }
-};
-
-GLubyte tri2_i[] =
-{
-	0,1,2
-};
-
-//blue
-Vertex tri3[] =
-{
-	{ { -0.5f, -0.5f, 0.0f, 1.0f },{ 0.0f, 0.0f, 1.0f, 1.0f } },
-	{ { 0.5f, -0.5f, 0.0f, 1.0f },{ 0.0f, 0.0f, 1.0f, 1.0f } },
-	{ { 0.0f, 0.0f, 0.0f, 1.0f },{ 0.0f, 0.0f, 1.0f, 1.0f } }
-};
-
-GLubyte tri3_i[] =
-{
-	0,1,2
-};
-
-//cyan
-Vertex tri4[] =
-{
-	{ { -0.25f, -0.25f, 0.0f, 1.0f },{ 0.0f, 1.0f, 1.0f, 1.0f } },
-	{ { 0.25f, -0.25f, 0.0f, 1.0f },{ 0.0f, 1.0f, 1.0f, 1.0f } },
-	{ { 0.0f, 0.0f, 0.0f, 1.0f },{ 0.0f, 1.0f, 1.0f, 1.0f } }
-};
-
-GLubyte tri4_i[] =
-{
-	0,1,2
-};
-
-//magenta
-Vertex tri5[] =
-{
-	{ { -0.25f, -0.25f, 0.0f, 1.0f },{ 1.0f, 0.0f, 1.0f, 1.0f } },
-	{ { 0.25f, -0.25f, 0.0f, 1.0f },{ 1.0f, 0.0f, 1.0f, 1.0f } },
-	{ { 0.0f, -0.0f, 0.0f, 1.0f },{ 1.0f, 0.0f, 1.0f, 1.0f } }
-};
-
-GLubyte tri5_i[] =
-{
-	0,1,2
-};
-
-//yellow
-Vertex quad[] =
-{
-	{ { -sqrt(2.0f) / 8.0f, -sqrt(2.0f) / 8.0f, 0.0f, 1.0f },{ 1.0f, 1.0f, 0.0f, 1.0f } },
-	{ { sqrt(2.0f) / 8.0f, -sqrt(2.0f) / 8.0f, 0.0f, 1.0f },{ 1.0f, 1.0f, 0.0f, 1.0f } },
-	{ { sqrt(2.0f) / 8.0f, sqrt(2.0f) / 8.0f, 0.0f, 1.0f },{ 1.0f, 1.0f, 0.0f, 1.0f } },
-	{ { -sqrt(2.0f) / 8.0f, sqrt(2.0f) / 8.0f, 0.0f, 1.0f },{ 1.0f, 1.0f, 0.0f, 1.0f } },
-};
-
-GLubyte quad_i[] =
-{
-	0,1,2,2,3,0
-};
-
-//orange
-Vertex para[] =
-{
-	{ { -((1.0f/4.0f) + 0.125f), -0.125f, 0.0f, 1.0f },{ 1.0f, 0.5f, 0.0f, 1.0f } },
-	{ { 1.0f /4.0f - 0.125f, -0.125f, 0.0f, 1.0f },{ 1.0f, 0.5f, 0.0f, 1.0f } },
-	{ { 1.0f /4.0f + 0.125f, 0.125f, 0.0f, 1.0f },{ 1.0f, 0.5f, 0.0f, 1.0f } },
-	{ { -(1.0f /4.0f - 0.125f), 0.125f, 0.0f, 1.0f },{ 1.0f, 0.5f, 0.0f, 1.0f } },
-};
-
-GLubyte para_i[] =
-{
-	0,1,2,2,3,0
-};
 
 /////////////////////////////////////////////////////////////////////// VAOs & VBOs
 
 void computeVAO(int objID, Vertex vertices[], int vSize, GLubyte indices[], int iSize) {
 	glBindVertexArray(vao_ID[objID]);
 
-	glGenBuffers(2, vbo_ID[objID]);
+	//glGenBuffers(2, vbo_ID[objID]);
+	glGenBuffers(1, vbo_ID[objID]);
 
 	glBindBuffer(GL_ARRAY_BUFFER, vbo_ID[objID][0]);
 	glBufferData(GL_ARRAY_BUFFER, vSize, vertices, GL_STATIC_DRAW);
@@ -268,8 +509,8 @@ void computeVAO(int objID, Vertex vertices[], int vSize, GLubyte indices[], int 
 	glEnableVertexAttribArray(COLORS);
 	glVertexAttribPointer(COLORS, 4, GL_FLOAT, GL_FALSE, sizeof(Vertex), (GLvoid *)sizeof(vertices[0].XYZW));
 
-	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, vbo_ID[objID][1]);
-	glBufferData(GL_ELEMENT_ARRAY_BUFFER, iSize, indices, GL_STATIC_DRAW);
+	/*glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, vbo_ID[objID][1]);
+	glBufferData(GL_ELEMENT_ARRAY_BUFFER, iSize, indices, GL_STATIC_DRAW);*/
 
 }
 
@@ -277,13 +518,13 @@ void createBufferObjects(){
 
 	glGenVertexArrays(objCount, vao_ID);
 
-	computeVAO(objID++, tri1, sizeof(tri1), tri1_i, sizeof(tri1_i));
-	computeVAO(objID++, tri2, sizeof(tri2), tri2_i, sizeof(tri2_i));
-	computeVAO(objID++, tri3, sizeof(tri3), tri3_i, sizeof(tri3_i));
-	computeVAO(objID++, tri4, sizeof(tri4), tri4_i, sizeof(tri4_i));
-	computeVAO(objID++, tri5, sizeof(tri5), tri5_i, sizeof(tri5_i));
+	computeVAO(objID++, tri1, sizeof(tri1), tri_i, sizeof(tri_i));
+	computeVAO(objID++, tri2, sizeof(tri2), tri_i, sizeof(tri_i));
+	computeVAO(objID++, tri3, sizeof(tri3), tri_i, sizeof(tri_i));
+	computeVAO(objID++, tri4, sizeof(tri4), tri_i, sizeof(tri_i));
+	computeVAO(objID++, tri5, sizeof(tri5), tri_i, sizeof(tri_i));
 	computeVAO(objID++, quad, sizeof(quad), quad_i, sizeof(quad_i));
-	computeVAO(objID, para, sizeof(para), para_i, sizeof(para_i));
+	computeVAO(objID, para, sizeof(para), quad_i, sizeof(quad_i));
 
 	glBindVertexArray(0);
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
@@ -313,46 +554,87 @@ void destroyBufferObjects()
 void drawObj(int vertexCount) {
 	glBindVertexArray(vao_ID[objID]);
 	glUseProgram(sp.programID);
-	glUniformMatrix4fv(UniformId, 1, GL_TRUE, matrix);
-	glDrawElements(GL_TRIANGLES, vertexCount, GL_UNSIGNED_BYTE, (GLvoid*)0);
+	toGLFormat(ModelMatrix, matrix);
+	glUniformMatrix4fv(ModelMatrix_ID, 1, GL_TRUE, matrix);
+	//glDrawElements(GL_TRIANGLES, vertexCount, GL_UNSIGNED_BYTE, (GLvoid*)0);
+	glDrawArrays(GL_TRIANGLES, 0, vertexCount);
+}
+
+void animateCamera() {
+
+	vec3 camDir;
+
+	if (camForward) {
+		camDir = camFocus - camPos;
+		camDir.normalize();
+		camDir = camDir * 0.02f;
+
+		camPos = camPos + camDir;
+		camFocus = camFocus + camDir;
+	} 
+	else if (camBackward) {
+		camDir = camFocus - camPos;
+		camDir.normalize();
+		camDir = camDir * 0.02f;
+
+		camPos = camPos - camDir;
+		camFocus = camFocus - camDir;
+	}
 }
 
 void drawScene()
 {
+	glUseProgram(sp.programID);
+	// the array "matrix" is a float storage to send to OpenGL
+
+	if (cameraType == PERSPECTIVE)
+		ProjectionMatrix = perspective(30.0f, (1.0f * WinX) / WinY, 0.1f, 1000.0f);
+	else
+		ProjectionMatrix = ortho(-2, 2, -2, 2, 0.1f, 100.0f);
+
+	toGLFormat(ProjectionMatrix, matrix);
+	glUniformMatrix4fv(ProjectionMatrix_ID, 1, GL_TRUE, matrix);
+
+	animateCamera();
+
+	ViewMatrix = lookAt(camPos, camFocus, vec3(0.0f, 1.0f, 0.0f))*mat4_rotation(camPitch, vec3(1, 0, 0))*mat4_rotation(camAngle, vec3(0,1,0));
+	toGLFormat(ViewMatrix, matrix);
+	glUniformMatrix4fv(ViewMatrix_ID, 1, GL_TRUE, matrix);
+
 	// medium red triangle
-	objID = 0;
-	toGLFormat(mat4_translation(-0.25f, 0.6f, 0.0f)*mat4_rotation(45, vec3(0,0,1)), matrix);
-	drawObj(3);
+	objID = 0; 
+	ModelMatrix = mat4_translation(-0.25f, 0.6f, 0.0f)*mat4_rotation(45, vec3(0, 0, 1));
+	drawObj(24);
 
 	//large green triangle
 	objID = 1;
-	toGLFormat(mat4_translation(0.25f, -0.4f, 0)*mat4_rotation(-90, vec3(0, 0, 1)), matrix);
-	drawObj(3);
+	ModelMatrix = mat4_translation(0.25f, -0.4f, 0)*mat4_rotation(-90, vec3(0, 0, 1));
+	drawObj(24);
 
 	//large blue triangle
 	objID = 2;
-	toGLFormat(mat4_translation(-0.25f, 0.1f, 0)*mat4_rotation(90, vec3(0, 0, 1)), matrix);
-	drawObj(3);
+	ModelMatrix = mat4_translation(-0.25f, 0.1f, 0)*mat4_rotation(90, vec3(0, 0, 1));
+	drawObj(24);
 
 	//small cyan triangle
 	objID = 3;
-	toGLFormat(mat4_translation(0.0f, -1.0f + sqrt(2.0f) / 4.0f, 0)*mat4_rotation(90, vec3(0, 0, 1)), matrix);
-	drawObj(3);
+	ModelMatrix = mat4_translation(0.0f, -1.0f + sqrt(2.0f) / 4.0f, 0)*mat4_rotation(90, vec3(0, 0, 1));
+	drawObj(24);
 
 	//small magenta triangle
 	objID = 4;
-	toGLFormat(mat4_translation(0, -1.0f + sqrt(2.0f)/4.0f, 0), matrix);
-	drawObj(3);
+	ModelMatrix = mat4_translation(0, -1.0f + sqrt(2.0f) / 4.0f, 0);
+	drawObj(24);
 
 	// yellow quad
 	objID = 5; 
-	toGLFormat(mat4_scale(vec3(1.0f, 0.5f, 0.5f))*mat4_translation(0.0f, 1.3f, 0.0f), matrix);
-	drawObj(6);
+	ModelMatrix = mat4_translation(0.0f, 0.8f, 0.0f);
+	drawObj(36);
 
 	// orange parallelogram
 	objID = 6; 
-	toGLFormat(mat4_translation(0.0f, 0.9f, 0.0f)*mat4_rotation(90, vec3(0,0,1))*mat4_scale(vec3(0.5f,0.5f,0.5f)), matrix);
-	drawObj(6);
+	ModelMatrix = mat4_translation(0.0f, 1.4f, 0.0f)*mat4_rotation(90, vec3(0, 0, 1));
+	drawObj(36);
 
 	glUseProgram(0);
 	glBindVertexArray(0);
@@ -399,6 +681,66 @@ void timer(int value)
     glutTimerFunc(1000, timer, 0);
 }
 
+void keyDown(unsigned char key, int xx, int yy) {
+	switch (key) {
+
+	case 'p': if (cameraType == PERSPECTIVE) cameraType = ORTHOGRAPHIC; else cameraType = PERSPECTIVE; break;
+
+	case 'w': camForward = true; break;
+	case 's': camBackward = true; break;
+
+	case 'c': PRINT(camFocus); break;
+	}
+}
+
+void keyUp(unsigned char key, int xx, int yy) {
+
+	switch (key) {
+
+	case 'w': camForward = false; break;
+	case 's': camBackward = false; break;
+	}
+
+}
+
+void processMouseButtons(int button, int state, int xx, int yy) {
+
+	if (state == GLUT_DOWN) {
+		startX = xx;
+		startY = yy;
+		if (button == GLUT_LEFT_BUTTON)
+			tracking = 1;
+	}
+	else if (state == GLUT_UP) {
+		tracking = 0;
+	}
+}
+
+void processMouseMotion(int xx, int yy) {
+	int deltaX, deltaY;
+
+	deltaX = -xx + startX;
+	deltaY = yy - startY;
+
+	if (tracking == 1) {
+
+		mat3 rotY = toMat3(mat4_rotation(-deltaX*0.002f, vec3(0, 1, 0)));
+
+		//camPos = rotY * camPos;
+
+		mat3 rotX = toMat3(mat4_rotation(deltaY*0.002f, vec3(1, 0, 0)));
+
+		camPos = (rotY * rotX) * camPos;
+
+		// NEATER METHOD, DOESNT CHANGE X AND Y OF FOCUS
+		// DONT KNOW WHICH THE TEACHER WANTS
+
+		/*camAngle -= deltaX*0.002f;
+		camPitch += deltaY*0.002f;*/
+	}
+
+}
+
 /////////////////////////////////////////////////////////////////////// SETUP
 
 void setupCallbacks() 
@@ -408,6 +750,10 @@ void setupCallbacks()
 	glutIdleFunc(idle);
 	glutReshapeFunc(reshape);
 	glutTimerFunc(0,timer,0);
+	glutKeyboardFunc(keyDown);
+	glutKeyboardUpFunc(keyUp);
+	glutMouseFunc(processMouseButtons);
+	glutMotionFunc(processMouseMotion);
 }
 
 void checkOpenGLInfo()
