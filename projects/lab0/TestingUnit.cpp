@@ -5,10 +5,12 @@
 #include "mat2.h"
 #include "mat3.h"
 #include "mat4.h"
+#include "qtrn.h"
 
 #define PRINT(s) std::cout << s << std::endl
 
 int test() {
+
 
 	//-----------------------------[ 2x2 VECTOR TESTING ]-----------------------------//
 
@@ -271,7 +273,7 @@ int test() {
 	PRINT(m4t);
 	PRINT(mat4_identity().determinant());*/
 
-	mat4 T = mat4_translation(1, 0, 0);
+	/*mat4 T = mat4_translation(1, 0, 0);
 	mat4 R = mat4_rotation(90, vec3(0,1,0));
 	mat4 S = mat4_scale(2, 2, 2);
 
@@ -285,7 +287,71 @@ int test() {
 	transpose(NormalMatrix);
 
 	PRINT(ModelMatrix);
-	PRINT(NormalMatrix);
+	PRINT(NormalMatrix);*/
+
+	//-------------------------------[ QUATERNION TESTING ]-------------------------------//
+
+	vec3 axis = vec3(0, 1, 0);
+	qtrn q = qtrn(90.0f, axis);
+	//PRINT(q);
+
+	qtrn vi = qtrn(0, 7, 0, 0);
+
+	qtrn qe = qtrn(0, 0, 0, -7);
+
+	qtrn qinv = inverse(q);
+
+	qtrn qf = (q * vi) * qinv;
+
+	if (!(qf == qe)) {
+		PRINT("90 Degree Rotation in Y Axis failed!");
+	}
+	/************************************************************************************/
+	vec4 v4i = vec4(7.0f, 0.0f, 0.0f, 1.0f);
+
+	vec4 v4e = vec4(0.0f, 0.0f, -7.0f, 1.0f);
+
+	mat4 mq;
+
+	mq = toMat4(q);
+
+	vec4 v4f = mq * v4i;
+
+	if (!(v4f == v4e)) {
+		PRINT("90 Degree Rotation using Matrix failed!");
+	}
+	/************************************************************************************/
+	vec3 axis_x = vec3(1.0f, 0.0f, 0.0f);
+	vec3 axis_y = vec3(0.0f, 1.0f, 0.0f);
+	vec3 axis_z = vec3( 0.0f, 0.0f, 1.0f);
+
+	qtrn qyaw900 = qtrn(900.0f, axis_y);
+
+	qtrn qroll180 = qtrn(180.0f, axis_x);
+	qtrn qpitch180 = qtrn(180.0f, axis_z);
+	qtrn qrp = qpitch180 * qroll180;
+	qtrn qpr = qroll180 * qpitch180;
+
+	qtrn qi = qtrn(0.0f, 1.0f, 0.0f, 0.0f ); // x-axis
+	qe = qtrn(0.0f, -1.0f, 0.0f, 0.0f );
+
+	qtrn qyaw900inv = inverse(qyaw900);
+	qtrn qfy = (qyaw900*qi) * qyaw900inv;
+
+	if (!(qe == qfy))
+		PRINT("Yaw900inv test failed!");
+
+	qtrn qrpinv = inverse(qrp);
+	qtrn qfrp = (qrp*qi)* qrpinv;
+
+	if (!(qe == qfrp))
+		PRINT("RollPitchInv test failed!");
+
+	qtrn qprinv = inverse(qpr);
+	qtrn qfpr = (qpr* qi)* qprinv;
+	if (!(qe == qfpr))
+		PRINT("PitchRollInv test failed!");
+
 
 	//-------------------------------[ END OF TESTING ]-------------------------------//
 

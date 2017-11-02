@@ -28,6 +28,12 @@
     <Filter Include="Header Files\Vector">
       <UniqueIdentifier>{be750942-e52b-489a-8193-52e7ad0dadcf}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Source Files\Quaternion">
+      <UniqueIdentifier>{1c96c37f-0109-4359-91e7-89a5fccee04a}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\Quaternion">
+      <UniqueIdentifier>{47a7f8cc-8cec-4ac0-86bc-2dd1451f44ca}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Shader.h">
@@ -53,6 +59,9 @@
     </ClInclude>
     <ClInclude Include="MathLib.h">
       <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="qtrn.h">
+      <Filter>Header Files\Quaternion</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -82,6 +91,9 @@
     </ClCompile>
     <ClCompile Include="Tangram.cpp">
       <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="qtrn.cpp">
+      <Filter>Source Files\Quaternion</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

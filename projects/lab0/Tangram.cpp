@@ -1,26 +1,17 @@
 ///////////////////////////////////////////////////////////////////////
 //
-// Assignment consists in the following:
+// Using quaternions to rotate in 3D.
 //
-// - Create the following changes to your scene, making it fully 3D:
-//   - Extrude your TANs into the 3rd dimension. The TANs should have
-//     slightly different "heights".
-//   - The new faces of each TAN should share the same hue as the 
-//     original top face color but have different levels of saturation 
-//     and brightness.
-//
-// - Add the following functionality:
-//   - Create a View Matrix from (eye, center, up) parameters.
-//   - Create an Orthographic Projection Matrix from (left-right, 
-//     bottom-top, near-far) parameters.
-//   - Create a Perspective Projection Matrix from (fovy, aspect,
-//     nearZ, farZ) parameters.
-//
-// - Add the following dynamics to the application:
-//   - Create a free 3D camera controlled by the mouse allowing to 
-//     visualize the scene through all its angles.
-//   - Change perspective from orthographic to perspective and back as
-//     a response to pressing the key 'p'.
+// Assignment: 1. Create a class for Quaternions.
+//             2. Create a scene with a camera rotating around an 
+//                object at the origin and pointing towards it. 
+//                Do NOT use "gluLookAt" to create the ViewMatrix, 
+//                use rotation matrices!
+//             3. Gimbal lock mode ON: use Translation + Rotation 
+//                matrices (e.g. Euler angles, Rodrigues’ formula).
+//             4. Gimbal lock mode OFF: use Quaternions to produce a 
+//                transformation matrix and avoid gimbal lock.
+//             5. Switch between modes by pressing the 'g' key.
 //
 // (c) 2013-17 by Carlos Martinho
 //
@@ -42,7 +33,7 @@
 #define PERSPECTIVE 0
 #define ORTHOGRAPHIC 1
 
-#define CAPTION "3D Tangram Visualization"
+#define CAPTION "Quaternion Rotation App"
 
 int WinX = 640, WinY = 480;
 int WindowHandle = 0;
@@ -55,9 +46,13 @@ int startX, startY, tracking = 0;
 #define VERTICES 0
 #define COLORS 1
 
+#define RODRIGUES 0
+#define QUATERNIONS 1
+
 Shader sp;
 
-const int objCount = 7;
+//const int objCount = 7; /* for tangram*/
+const int objCount = 1;
 int objID = 0;
 
 float matrix[16];
@@ -73,15 +68,22 @@ mat4 ModelMatrix;
 mat4 ViewMatrix;
 mat4 ProjectionMatrix;
 
-vec3 camPos = vec3(0.0f, 0.0f, 5.0f);
+vec3 camDir = vec3(0.0f, 0.0f, -5.0f);
 vec3 camFocus = vec3(0.0f);
-float camAngle = 30.0f;
+vec3 camUp = vec3(0.0f, 1.0f, 0.0f);
+vec3 camRight = vec3(-1.0f, 0.0f, 0.0f);
+float camAngle = 0.0f;
 float camPitch = 0.0f;
+
+qtrn qCamDir = qtrn(0.0f, 0.0f, 0.0f, -1.0f);
+qtrn qRotY = qtrn(camAngle, camUp);
+qtrn qRotX = qtrn(camPitch, camRight);
 
 bool camForward = false;
 bool camBackward = false;
 
-int cameraType = ORTHOGRAPHIC;
+int cameraType = PERSPECTIVE;
+int rotationType = RODRIGUES;
 
 // unused
 GLuint VertexShaderId, FragmentShaderId, ProgramId; // please remove these!
@@ -292,30 +294,31 @@ Vertex tri5[] =
 	/*4*/{ { 0.25f, -0.25f, -0.2f, 1.0f },{ 0.5f, 0.0f, 0.5f, 1.0f } },
 };
 
-//yellow
+//yellow - original
+//mixed - quaternions
 Vertex quad[] =
 {
 	/*0*/{ { -sqrt(2.0f) / 8.0f, -sqrt(2.0f) / 8.0f, 0.0f, 1.0f },{ 1.0f, 1.0f, 0.0f, 1.0f } },
 	/*1*/{ { sqrt(2.0f) / 8.0f, -sqrt(2.0f) / 8.0f, 0.0f, 1.0f },{ 1.0f, 1.0f, 0.0f, 1.0f } },
 	/*2*/{ { sqrt(2.0f) / 8.0f, sqrt(2.0f) / 8.0f, 0.0f, 1.0f },{ 1.0f, 1.0f, 0.0f, 1.0f } },
 
-	/*2*/{ { sqrt(2.0f) / 8.0f, sqrt(2.0f) / 8.0f, 0.0f, 1.0f },{ 1.0f, 1.0f, 0.0f, 1.0f } },
-	/*3*/{ { -sqrt(2.0f) / 8.0f, sqrt(2.0f) / 8.0f, 0.0f, 1.0f },{ 1.0f, 1.0f, 0.0f, 1.0f } },
-	/*0*/{ { -sqrt(2.0f) / 8.0f, -sqrt(2.0f) / 8.0f, 0.0f, 1.0f },{ 1.0f, 1.0f, 0.0f, 1.0f } },
+	/*2*/{ { sqrt(2.0f) / 8.0f, sqrt(2.0f) / 8.0f, 0.0f, 1.0f },{ 1.0f, 0.0f, 0.0f, 1.0f } },
+	/*3*/{ { -sqrt(2.0f) / 8.0f, sqrt(2.0f) / 8.0f, 0.0f, 1.0f },{ 1.0f, 0.0f, 0.0f, 1.0f } },
+	/*0*/{ { -sqrt(2.0f) / 8.0f, -sqrt(2.0f) / 8.0f, 0.0f, 1.0f },{ 1.0f, 0.0f, 0.0f, 1.0f } },
 
-	/*0*/{ { -sqrt(2.0f) / 8.0f, -sqrt(2.0f) / 8.0f, 0.0f, 1.0f },{ 1.0f, 1.0f, 0.0f, 1.0f } },
-	/*4*/{ { -sqrt(2.0f) / 8.0f, -sqrt(2.0f) / 8.0f, -0.2f, 1.0f },{ 0.5f, 0.5f, 0.0f, 1.0f } },
-	/*1*/{ { sqrt(2.0f) / 8.0f, -sqrt(2.0f) / 8.0f, 0.0f, 1.0f },{ 1.0f, 1.0f, 0.0f, 1.0f } },
+	/*0*/{ { -sqrt(2.0f) / 8.0f, -sqrt(2.0f) / 8.0f, 0.0f, 1.0f },{ 0.0f, 1.0f, 0.0f, 1.0f } },
+	/*4*/{ { -sqrt(2.0f) / 8.0f, -sqrt(2.0f) / 8.0f, -0.2f, 1.0f },{ 0.0f, 0.5f, 0.0f, 1.0f } },
+	/*1*/{ { sqrt(2.0f) / 8.0f, -sqrt(2.0f) / 8.0f, 0.0f, 1.0f },{ 0.0f, 1.0f, 0.0f, 1.0f } },
 
-	/*4*/{ { -sqrt(2.0f) / 8.0f, -sqrt(2.0f) / 8.0f, -0.2f, 1.0f },{ 0.5f, 0.5f, 0.0f, 1.0f } },
+	/*4*/{ { -sqrt(2.0f) / 8.0f, -sqrt(2.0f) / 8.0f, -0.2f, 1.0f },{ 0.0f, 0.5f, 0.5f, 1.0f } },
+	/*5*/{ { sqrt(2.0f) / 8.0f, -sqrt(2.0f) / 8.0f, -0.2f, 1.0f },{ 0.0f, 0.5f, 0.5f, 1.0f } },
+	/*1*/{ { sqrt(2.0f) / 8.0f, -sqrt(2.0f) / 8.0f, 0.0f, 1.0f },{ 0.0f, 1.0f, 1.0f, 1.0f } },
+
+	/*1*/{ { sqrt(2.0f) / 8.0f, -sqrt(2.0f) / 8.0f, 0.0f, 1.0f },{ 0.0f, 0.0f, 1.0f, 1.0f } },
+	/*5*/{ { sqrt(2.0f) / 8.0f, -sqrt(2.0f) / 8.0f, -0.2f, 1.0f },{ 0.0f, 0.0f, 0.5f, 1.0f } },
+	/*2*/{ { sqrt(2.0f) / 8.0f, sqrt(2.0f) / 8.0f, 0.0f, 1.0f },{ 0.0f, 0.0f, 1.0f, 1.0f } },
+
 	/*5*/{ { sqrt(2.0f) / 8.0f, -sqrt(2.0f) / 8.0f, -0.2f, 1.0f },{ 0.5f, 0.5f, 0.0f, 1.0f } },
-	/*1*/{ { sqrt(2.0f) / 8.0f, -sqrt(2.0f) / 8.0f, 0.0f, 1.0f },{ 1.0f, 1.0f, 0.0f, 1.0f } },
-
-	/*1*/{ { sqrt(2.0f) / 8.0f, -sqrt(2.0f) / 8.0f, 0.0f, 1.0f },{ 1.0f, 1.0f, 0.0f, 1.0f } },
-	/*5*/{ { sqrt(2.0f) / 8.0f, -sqrt(2.0f) / 8.0f, -0.2f, 1.0f },{ 0.5f, 0.5f, 0.0f, 1.0f } },
-	/*2*/{ { sqrt(2.0f) / 8.0f, sqrt(2.0f) / 8.0f, 0.0f, 1.0f },{ 1.0f, 1.0f, 0.0f, 1.0f } },
-
-	/*5*/{ { sqrt(2.0f) / 8.0f, -sqrt(2.0f) / 8.0f, -0.2f, 1.0f },{ 0.5f, 0.5f, 0.0f, 1.0f } },
 	/*6*/{ { sqrt(2.0f) / 8.0f, sqrt(2.0f) / 8.0f, -0.2f, 1.0f },{ 0.5f, 0.5f, 0.0f, 1.0f } },
 	/*2*/{ { sqrt(2.0f) / 8.0f, sqrt(2.0f) / 8.0f, 0.0f, 1.0f },{ 1.0f, 1.0f, 0.0f, 1.0f } },
 
@@ -323,21 +326,21 @@ Vertex quad[] =
 	/*6*/{ { sqrt(2.0f) / 8.0f, sqrt(2.0f) / 8.0f, -0.2f, 1.0f },{ 0.5f, 0.5f, 0.0f, 1.0f } },
 	/*3*/{ { -sqrt(2.0f) / 8.0f, sqrt(2.0f) / 8.0f, 0.0f, 1.0f },{ 1.0f, 1.0f, 0.0f, 1.0f } },
 
-	/*6*/{ { sqrt(2.0f) / 8.0f, sqrt(2.0f) / 8.0f, -0.2f, 1.0f },{ 0.5f, 0.5f, 0.0f, 1.0f } },
-	/*7*/{ { -sqrt(2.0f) / 8.0f, sqrt(2.0f) / 8.0f, -0.2f, 1.0f },{ 0.5f, 0.5f, 0.0f, 1.0f } },
-	/*3*/{ { -sqrt(2.0f) / 8.0f, sqrt(2.0f) / 8.0f, 0.0f, 1.0f },{ 1.0f, 1.0f, 0.0f, 1.0f } },
+	/*6*/{ { sqrt(2.0f) / 8.0f, sqrt(2.0f) / 8.0f, -0.2f, 1.0f },{ 0.5f, 0.0f, 0.5f, 1.0f } },
+	/*7*/{ { -sqrt(2.0f) / 8.0f, sqrt(2.0f) / 8.0f, -0.2f, 1.0f },{ 0.5f, 0.0f, 0.5f, 1.0f } },
+	/*3*/{ { -sqrt(2.0f) / 8.0f, sqrt(2.0f) / 8.0f, 0.0f, 1.0f },{ 1.0f, 0.0f, 1.0f, 1.0f } },
 
-	/*3*/{ { -sqrt(2.0f) / 8.0f, sqrt(2.0f) / 8.0f, 0.0f, 1.0f },{ 1.0f, 1.0f, 0.0f, 1.0f } },
-	/*7*/{ { -sqrt(2.0f) / 8.0f, sqrt(2.0f) / 8.0f, -0.2f, 1.0f },{ 0.5f, 0.5f, 0.0f, 1.0f } },
-	/*0*/{ { -sqrt(2.0f) / 8.0f, -sqrt(2.0f) / 8.0f, 0.0f, 1.0f },{ 1.0f, 1.0f, 0.0f, 1.0f } },
+	/*3*/{ { -sqrt(2.0f) / 8.0f, sqrt(2.0f) / 8.0f, 0.0f, 1.0f },{ 1.0f, 0.0f, 1.0f, 1.0f } },
+	/*7*/{ { -sqrt(2.0f) / 8.0f, sqrt(2.0f) / 8.0f, -0.2f, 1.0f },{ 0.5f, 0.0f, 0.5f, 1.0f } },
+	/*0*/{ { -sqrt(2.0f) / 8.0f, -sqrt(2.0f) / 8.0f, 0.0f, 1.0f },{ 1.0f, 0.0f, 1.0f, 1.0f } },
 
 	/*7*/{ { -sqrt(2.0f) / 8.0f, sqrt(2.0f) / 8.0f, -0.2f, 1.0f },{ 0.5f, 0.5f, 0.0f, 1.0f } },
 	/*4*/{ { -sqrt(2.0f) / 8.0f, -sqrt(2.0f) / 8.0f, -0.2f, 1.0f },{ 0.5f, 0.5f, 0.0f, 1.0f } },
 	/*0*/{ { -sqrt(2.0f) / 8.0f, -sqrt(2.0f) / 8.0f, 0.0f, 1.0f },{ 1.0f, 1.0f, 0.0f, 1.0f } },
 
-	/*4*/{ { -sqrt(2.0f) / 8.0f, -sqrt(2.0f) / 8.0f, -0.2f, 1.0f },{ 0.5f, 0.5f, 0.0f, 1.0f } },
-	/*7*/{ { -sqrt(2.0f) / 8.0f, sqrt(2.0f) / 8.0f, -0.2f, 1.0f },{ 0.5f, 0.5f, 0.0f, 1.0f } },
-	/*6*/{ { sqrt(2.0f) / 8.0f, sqrt(2.0f) / 8.0f, -0.2f, 1.0f },{ 0.5f, 0.5f, 0.0f, 1.0f } },
+	/*4*/{ { -sqrt(2.0f) / 8.0f, -sqrt(2.0f) / 8.0f, -0.2f, 1.0f },{ 0.0f, 0.5f, 0.0f, 1.0f } },
+	/*7*/{ { -sqrt(2.0f) / 8.0f, sqrt(2.0f) / 8.0f, -0.2f, 1.0f },{ 0.0f, 0.5f, 0.0f, 1.0f } },
+	/*6*/{ { sqrt(2.0f) / 8.0f, sqrt(2.0f) / 8.0f, -0.2f, 1.0f },{ 0.0f, 0.5f, 0.0f, 1.0f } },
 
 	/*6*/{ { sqrt(2.0f) / 8.0f, sqrt(2.0f) / 8.0f, -0.2f, 1.0f },{ 0.5f, 0.5f, 0.0f, 1.0f } },
 	/*5*/{ { sqrt(2.0f) / 8.0f, -sqrt(2.0f) / 8.0f, -0.2f, 1.0f },{ 0.5f, 0.5f, 0.0f, 1.0f } },
@@ -518,13 +521,17 @@ void createBufferObjects(){
 
 	glGenVertexArrays(objCount, vao_ID);
 
-	computeVAO(objID++, tri1, sizeof(tri1), tri_i, sizeof(tri_i));
+	// for tangram
+	/*computeVAO(objID++, tri1, sizeof(tri1), tri_i, sizeof(tri_i));
 	computeVAO(objID++, tri2, sizeof(tri2), tri_i, sizeof(tri_i));
 	computeVAO(objID++, tri3, sizeof(tri3), tri_i, sizeof(tri_i));
 	computeVAO(objID++, tri4, sizeof(tri4), tri_i, sizeof(tri_i));
 	computeVAO(objID++, tri5, sizeof(tri5), tri_i, sizeof(tri_i));
 	computeVAO(objID++, quad, sizeof(quad), quad_i, sizeof(quad_i));
-	computeVAO(objID, para, sizeof(para), quad_i, sizeof(quad_i));
+	computeVAO(objID, para, sizeof(para), quad_i, sizeof(quad_i));*/ 
+
+
+	computeVAO(objID, quad, sizeof(quad), quad_i, sizeof(quad_i));
 
 	glBindVertexArray(0);
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
@@ -562,24 +569,24 @@ void drawObj(int vertexCount) {
 
 void animateCamera() {
 
-	vec3 camDir;
+	/*vec3 camDir;
 
 	if (camForward) {
-		camDir = camFocus - camPos;
+		camDir = camFocus - camDir;
 		camDir.normalize();
 		camDir = camDir * 0.02f;
 
-		camPos = camPos + camDir;
+		camDir = camDir + camDir;
 		camFocus = camFocus + camDir;
 	} 
 	else if (camBackward) {
-		camDir = camFocus - camPos;
+		camDir = camFocus - camDir;
 		camDir.normalize();
 		camDir = camDir * 0.02f;
 
-		camPos = camPos - camDir;
+		camDir = camDir - camDir;
 		camFocus = camFocus - camDir;
-	}
+	}*/
 }
 
 void drawScene()
@@ -595,45 +602,25 @@ void drawScene()
 	toGLFormat(ProjectionMatrix, matrix);
 	glUniformMatrix4fv(ProjectionMatrix_ID, 1, GL_TRUE, matrix);
 
-	animateCamera();
+	//animateCamera();
 
-	ViewMatrix = lookAt(camPos, camFocus, vec3(0.0f, 1.0f, 0.0f))*mat4_rotation(camPitch, vec3(1, 0, 0))*mat4_rotation(camAngle, vec3(0,1,0));
+	//for quaternions
+
+	if (rotationType == RODRIGUES) {
+		ViewMatrix = mat4_translation(camDir)*mat4_rotation(camPitch, camRight)*mat4_rotation(camAngle, camUp);
+		//ViewMatrix = mat4_translation(camDir);
+	}
+	else {
+		//ViewMatrix = mat4_translation(camDir)*toMat4(qCamDir); -> the "correct one" ??
+		ViewMatrix = mat4_translation(camDir)*toMat4(qRotX*qRotY);
+	}
+
 	toGLFormat(ViewMatrix, matrix);
 	glUniformMatrix4fv(ViewMatrix_ID, 1, GL_TRUE, matrix);
 
-	// medium red triangle
-	objID = 0; 
-	ModelMatrix = mat4_translation(-0.25f, 0.6f, 0.0f)*mat4_rotation(45, vec3(0, 0, 1));
-	drawObj(24);
-
-	//large green triangle
-	objID = 1;
-	ModelMatrix = mat4_translation(0.25f, -0.4f, 0)*mat4_rotation(-90, vec3(0, 0, 1));
-	drawObj(24);
-
-	//large blue triangle
-	objID = 2;
-	ModelMatrix = mat4_translation(-0.25f, 0.1f, 0)*mat4_rotation(90, vec3(0, 0, 1));
-	drawObj(24);
-
-	//small cyan triangle
-	objID = 3;
-	ModelMatrix = mat4_translation(0.0f, -1.0f + sqrt(2.0f) / 4.0f, 0)*mat4_rotation(90, vec3(0, 0, 1));
-	drawObj(24);
-
-	//small magenta triangle
-	objID = 4;
-	ModelMatrix = mat4_translation(0, -1.0f + sqrt(2.0f) / 4.0f, 0);
-	drawObj(24);
-
-	// yellow quad
-	objID = 5; 
-	ModelMatrix = mat4_translation(0.0f, 0.8f, 0.0f);
-	drawObj(36);
-
-	// orange parallelogram
-	objID = 6; 
-	ModelMatrix = mat4_translation(0.0f, 1.4f, 0.0f)*mat4_rotation(90, vec3(0, 0, 1));
+	// yellow quad for quaternions
+	objID = 0;
+	ModelMatrix = mat4_identity();
 	drawObj(36);
 
 	glUseProgram(0);
@@ -686,10 +673,19 @@ void keyDown(unsigned char key, int xx, int yy) {
 
 	case 'p': if (cameraType == PERSPECTIVE) cameraType = ORTHOGRAPHIC; else cameraType = PERSPECTIVE; break;
 
+	case 'g': if (rotationType == RODRIGUES) {
+					rotationType = QUATERNIONS;
+					std::cout << "Quaternion Rotation" << std::endl;
+			  }
+			  else {
+				  rotationType = RODRIGUES;
+				  std::cout << "Euler Rotation" << std::endl;
+			  } 
+			  break;
+
 	case 'w': camForward = true; break;
 	case 's': camBackward = true; break;
-
-	case 'c': PRINT(camFocus); break;
+	case 'c': PRINT("qCamDir:"); PRINT(qCamDir); break;
 	}
 }
 
@@ -724,19 +720,17 @@ void processMouseMotion(int xx, int yy) {
 
 	if (tracking == 1) {
 
-		mat3 rotY = toMat3(mat4_rotation(-deltaX*0.002f, vec3(0, 1, 0)));
+		camAngle -= deltaX*0.012f;
 
-		//camPos = rotY * camPos;
+		camPitch -= deltaY*0.012f;
 
-		mat3 rotX = toMat3(mat4_rotation(deltaY*0.002f, vec3(1, 0, 0)));
+		qRotY = qtrn(camAngle, camUp);
+		qRotX = qtrn(camPitch, camRight);
+		qCamDir = qRotX * qRotY * qCamDir;
+		normalize(qCamDir);
 
-		camPos = (rotY * rotX) * camPos;
+		//idk what im doing at this point
 
-		// NEATER METHOD, DOESNT CHANGE X AND Y OF FOCUS
-		// DONT KNOW WHICH THE TEACHER WANTS
-
-		/*camAngle -= deltaX*0.002f;
-		camPitch += deltaY*0.002f;*/
 	}
 
 }
