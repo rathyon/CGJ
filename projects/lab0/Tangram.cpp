@@ -75,9 +75,10 @@ vec3 camRight = vec3(-1.0f, 0.0f, 0.0f);
 float camAngle = 0.0f;
 float camPitch = 0.0f;
 
-qtrn qCamDir = qtrn(0.0f, 0.0f, 0.0f, -1.0f);
 qtrn qRotY = qtrn(camAngle, camUp);
 qtrn qRotX = qtrn(camPitch, camRight);
+
+qtrn qRotState = qtrn(1.0f, 0, 0, 0);
 
 bool camForward = false;
 bool camBackward = false;
@@ -298,53 +299,54 @@ Vertex tri5[] =
 //mixed - quaternions
 Vertex quad[] =
 {
-	/*0*/{ { -sqrt(2.0f) / 8.0f, -sqrt(2.0f) / 8.0f, 0.0f, 1.0f },{ 1.0f, 1.0f, 0.0f, 1.0f } },
-	/*1*/{ { sqrt(2.0f) / 8.0f, -sqrt(2.0f) / 8.0f, 0.0f, 1.0f },{ 1.0f, 1.0f, 0.0f, 1.0f } },
-	/*2*/{ { sqrt(2.0f) / 8.0f, sqrt(2.0f) / 8.0f, 0.0f, 1.0f },{ 1.0f, 1.0f, 0.0f, 1.0f } },
 
-	/*2*/{ { sqrt(2.0f) / 8.0f, sqrt(2.0f) / 8.0f, 0.0f, 1.0f },{ 1.0f, 0.0f, 0.0f, 1.0f } },
-	/*3*/{ { -sqrt(2.0f) / 8.0f, sqrt(2.0f) / 8.0f, 0.0f, 1.0f },{ 1.0f, 0.0f, 0.0f, 1.0f } },
-	/*0*/{ { -sqrt(2.0f) / 8.0f, -sqrt(2.0f) / 8.0f, 0.0f, 1.0f },{ 1.0f, 0.0f, 0.0f, 1.0f } },
+	//FRONT
+	/*0*/{ { -sqrt(2.0f) / 8.0f, -sqrt(2.0f) / 8.0f, 0.4f, 1.0f },{ 1.0f, 0.0f, 0.0f, 1.0f } },
+	/*1*/{ { sqrt(2.0f) / 8.0f, -sqrt(2.0f) / 8.0f, 0.4f, 1.0f },{ 1.0f, 0.0f, 0.0f, 1.0f } },
+	/*2*/{ { sqrt(2.0f) / 8.0f, sqrt(2.0f) / 8.0f, 0.4f, 1.0f },{ 1.0f, 0.0f, 0.0f, 1.0f } },
+	/*2*/{ { sqrt(2.0f) / 8.0f, sqrt(2.0f) / 8.0f, 0.4f, 1.0f },{ 1.0f, 0.0f, 0.0f, 1.0f } },
+	/*3*/{ { -sqrt(2.0f) / 8.0f, sqrt(2.0f) / 8.0f, 0.4f, 1.0f },{ 1.0f, 0.0f, 0.0f, 1.0f } },
+	/*0*/{ { -sqrt(2.0f) / 8.0f, -sqrt(2.0f) / 8.0f, 0.4f, 1.0f },{ 1.0f, 0.0f, 0.0f, 1.0f } },
 
-	/*0*/{ { -sqrt(2.0f) / 8.0f, -sqrt(2.0f) / 8.0f, 0.0f, 1.0f },{ 0.0f, 1.0f, 0.0f, 1.0f } },
-	/*4*/{ { -sqrt(2.0f) / 8.0f, -sqrt(2.0f) / 8.0f, -0.2f, 1.0f },{ 0.0f, 0.5f, 0.0f, 1.0f } },
-	/*1*/{ { sqrt(2.0f) / 8.0f, -sqrt(2.0f) / 8.0f, 0.0f, 1.0f },{ 0.0f, 1.0f, 0.0f, 1.0f } },
+	//BOTTOM
+	/*0*/{ { -sqrt(2.0f) / 8.0f, -sqrt(2.0f) / 8.0f, 0.4f, 1.0f },{ 0.0f, 1.0f, 0.0f, 1.0f } },
+	/*4*/{ { -sqrt(2.0f) / 8.0f, -sqrt(2.0f) / 8.0f, -0.4f, 1.0f },{ 0.0f, 0.5f, 0.0f, 1.0f } },
+	/*1*/{ { sqrt(2.0f) / 8.0f, -sqrt(2.0f) / 8.0f, 0.4f, 1.0f },{ 0.0f, 1.0f, 0.0f, 1.0f } },
+	/*4*/{ { -sqrt(2.0f) / 8.0f, -sqrt(2.0f) / 8.0f, -0.4f, 1.0f },{ 0.0f, 0.5f, 0.0f, 1.0f } },
+	/*5*/{ { sqrt(2.0f) / 8.0f, -sqrt(2.0f) / 8.0f, -0.4f, 1.0f },{ 0.0f, 0.5f, 0.0f, 1.0f } },
+	/*1*/{ { sqrt(2.0f) / 8.0f, -sqrt(2.0f) / 8.0f, 0.4f, 1.0f },{ 0.0f, 1.0f, 0.0f, 1.0f } },
 
-	/*4*/{ { -sqrt(2.0f) / 8.0f, -sqrt(2.0f) / 8.0f, -0.2f, 1.0f },{ 0.0f, 0.5f, 0.5f, 1.0f } },
-	/*5*/{ { sqrt(2.0f) / 8.0f, -sqrt(2.0f) / 8.0f, -0.2f, 1.0f },{ 0.0f, 0.5f, 0.5f, 1.0f } },
-	/*1*/{ { sqrt(2.0f) / 8.0f, -sqrt(2.0f) / 8.0f, 0.0f, 1.0f },{ 0.0f, 1.0f, 1.0f, 1.0f } },
+	//RIGHT
+	/*1*/{ { sqrt(2.0f) / 8.0f, -sqrt(2.0f) / 8.0f, 0.4f, 1.0f },{ 0.0f, 0.0f, 1.0f, 1.0f } },
+	/*5*/{ { sqrt(2.0f) / 8.0f, -sqrt(2.0f) / 8.0f, -0.4f, 1.0f },{ 0.0f, 0.0f, 0.5f, 1.0f } },
+	/*2*/{ { sqrt(2.0f) / 8.0f, sqrt(2.0f) / 8.0f, 0.4f, 1.0f },{ 0.0f, 0.0f, 1.0f, 1.0f } },
+	/*5*/{ { sqrt(2.0f) / 8.0f, -sqrt(2.0f) / 8.0f, -0.4f, 1.0f },{ 0.0f, 0.0f, 0.5f, 1.0f } },
+	/*6*/{ { sqrt(2.0f) / 8.0f, sqrt(2.0f) / 8.0f, -0.4f, 1.0f },{ 0.0f, 0.0f, 0.5f, 1.0f } },
+	/*2*/{ { sqrt(2.0f) / 8.0f, sqrt(2.0f) / 8.0f, 0.4f, 1.0f },{ 0.0f, 0.0f, 1.0f, 1.0f } },
 
-	/*1*/{ { sqrt(2.0f) / 8.0f, -sqrt(2.0f) / 8.0f, 0.0f, 1.0f },{ 0.0f, 0.0f, 1.0f, 1.0f } },
-	/*5*/{ { sqrt(2.0f) / 8.0f, -sqrt(2.0f) / 8.0f, -0.2f, 1.0f },{ 0.0f, 0.0f, 0.5f, 1.0f } },
-	/*2*/{ { sqrt(2.0f) / 8.0f, sqrt(2.0f) / 8.0f, 0.0f, 1.0f },{ 0.0f, 0.0f, 1.0f, 1.0f } },
+	//TOP
+	/*2*/{ { sqrt(2.0f) / 8.0f, sqrt(2.0f) / 8.0f, 0.4f, 1.0f },{ 1.0f, 0.0f, 1.0f, 1.0f } },
+	/*6*/{ { sqrt(2.0f) / 8.0f, sqrt(2.0f) / 8.0f, -0.4f, 1.0f },{ 0.5f, 0.0f, 0.5f, 1.0f } },
+	/*3*/{ { -sqrt(2.0f) / 8.0f, sqrt(2.0f) / 8.0f, 0.4f, 1.0f },{ 1.0f, 0.0f, 1.0f, 1.0f } },
+	/*6*/{ { sqrt(2.0f) / 8.0f, sqrt(2.0f) / 8.0f, -0.4f, 1.0f },{ 0.5f, 0.0f, 0.5f, 1.0f } },
+	/*7*/{ { -sqrt(2.0f) / 8.0f, sqrt(2.0f) / 8.0f, -0.4f, 1.0f },{ 0.5f, 0.0f, 0.5f, 1.0f } },
+	/*3*/{ { -sqrt(2.0f) / 8.0f, sqrt(2.0f) / 8.0f, 0.4f, 1.0f },{ 1.0f, 0.0f, 1.0f, 1.0f } },
 
-	/*5*/{ { sqrt(2.0f) / 8.0f, -sqrt(2.0f) / 8.0f, -0.2f, 1.0f },{ 0.5f, 0.5f, 0.0f, 1.0f } },
-	/*6*/{ { sqrt(2.0f) / 8.0f, sqrt(2.0f) / 8.0f, -0.2f, 1.0f },{ 0.5f, 0.5f, 0.0f, 1.0f } },
-	/*2*/{ { sqrt(2.0f) / 8.0f, sqrt(2.0f) / 8.0f, 0.0f, 1.0f },{ 1.0f, 1.0f, 0.0f, 1.0f } },
+	//LEFT
+	/*3*/{ { -sqrt(2.0f) / 8.0f, sqrt(2.0f) / 8.0f, 0.4f, 1.0f },{ 0.0f, 1.0f, 1.0f, 1.0f } },
+	/*7*/{ { -sqrt(2.0f) / 8.0f, sqrt(2.0f) / 8.0f, -0.4f, 1.0f },{ 0.0f, 0.5f, 0.5f, 1.0f } },
+	/*0*/{ { -sqrt(2.0f) / 8.0f, -sqrt(2.0f) / 8.0f, 0.4f, 1.0f },{ 0.0f, 1.0f, 1.0f, 1.0f } },
+	/*7*/{ { -sqrt(2.0f) / 8.0f, sqrt(2.0f) / 8.0f, -0.4f, 1.0f },{ 0.0f, 0.5f, 0.5f, 1.0f } },
+	/*4*/{ { -sqrt(2.0f) / 8.0f, -sqrt(2.0f) / 8.0f, -0.4f, 1.0f },{ 0.0f, 0.5f, 0.5f, 1.0f } },
+	/*0*/{ { -sqrt(2.0f) / 8.0f, -sqrt(2.0f) / 8.0f, 0.4f, 1.0f },{ 0.0f, 1.0f, 1.0f, 1.0f } },
 
-	/*2*/{ { sqrt(2.0f) / 8.0f, sqrt(2.0f) / 8.0f, 0.0f, 1.0f },{ 1.0f, 1.0f, 0.0f, 1.0f } },
-	/*6*/{ { sqrt(2.0f) / 8.0f, sqrt(2.0f) / 8.0f, -0.2f, 1.0f },{ 0.5f, 0.5f, 0.0f, 1.0f } },
-	/*3*/{ { -sqrt(2.0f) / 8.0f, sqrt(2.0f) / 8.0f, 0.0f, 1.0f },{ 1.0f, 1.0f, 0.0f, 1.0f } },
-
-	/*6*/{ { sqrt(2.0f) / 8.0f, sqrt(2.0f) / 8.0f, -0.2f, 1.0f },{ 0.5f, 0.0f, 0.5f, 1.0f } },
-	/*7*/{ { -sqrt(2.0f) / 8.0f, sqrt(2.0f) / 8.0f, -0.2f, 1.0f },{ 0.5f, 0.0f, 0.5f, 1.0f } },
-	/*3*/{ { -sqrt(2.0f) / 8.0f, sqrt(2.0f) / 8.0f, 0.0f, 1.0f },{ 1.0f, 0.0f, 1.0f, 1.0f } },
-
-	/*3*/{ { -sqrt(2.0f) / 8.0f, sqrt(2.0f) / 8.0f, 0.0f, 1.0f },{ 1.0f, 0.0f, 1.0f, 1.0f } },
-	/*7*/{ { -sqrt(2.0f) / 8.0f, sqrt(2.0f) / 8.0f, -0.2f, 1.0f },{ 0.5f, 0.0f, 0.5f, 1.0f } },
-	/*0*/{ { -sqrt(2.0f) / 8.0f, -sqrt(2.0f) / 8.0f, 0.0f, 1.0f },{ 1.0f, 0.0f, 1.0f, 1.0f } },
-
-	/*7*/{ { -sqrt(2.0f) / 8.0f, sqrt(2.0f) / 8.0f, -0.2f, 1.0f },{ 0.5f, 0.5f, 0.0f, 1.0f } },
-	/*4*/{ { -sqrt(2.0f) / 8.0f, -sqrt(2.0f) / 8.0f, -0.2f, 1.0f },{ 0.5f, 0.5f, 0.0f, 1.0f } },
-	/*0*/{ { -sqrt(2.0f) / 8.0f, -sqrt(2.0f) / 8.0f, 0.0f, 1.0f },{ 1.0f, 1.0f, 0.0f, 1.0f } },
-
-	/*4*/{ { -sqrt(2.0f) / 8.0f, -sqrt(2.0f) / 8.0f, -0.2f, 1.0f },{ 0.0f, 0.5f, 0.0f, 1.0f } },
-	/*7*/{ { -sqrt(2.0f) / 8.0f, sqrt(2.0f) / 8.0f, -0.2f, 1.0f },{ 0.0f, 0.5f, 0.0f, 1.0f } },
-	/*6*/{ { sqrt(2.0f) / 8.0f, sqrt(2.0f) / 8.0f, -0.2f, 1.0f },{ 0.0f, 0.5f, 0.0f, 1.0f } },
-
-	/*6*/{ { sqrt(2.0f) / 8.0f, sqrt(2.0f) / 8.0f, -0.2f, 1.0f },{ 0.5f, 0.5f, 0.0f, 1.0f } },
-	/*5*/{ { sqrt(2.0f) / 8.0f, -sqrt(2.0f) / 8.0f, -0.2f, 1.0f },{ 0.5f, 0.5f, 0.0f, 1.0f } },
-	/*4*/{ { -sqrt(2.0f) / 8.0f, -sqrt(2.0f) / 8.0f, -0.2f, 1.0f },{ 0.5f, 0.5f, 0.0f, 1.0f } },
+	//BACK
+	/*4*/{ { -sqrt(2.0f) / 8.0f, -sqrt(2.0f) / 8.0f, -0.4f, 1.0f },{ 0.5f, 0.5f, 0.0f, 1.0f } },
+	/*7*/{ { -sqrt(2.0f) / 8.0f, sqrt(2.0f) / 8.0f, -0.4f, 1.0f },{ 0.5f, 0.5f, 0.0f, 1.0f } },
+	/*6*/{ { sqrt(2.0f) / 8.0f, sqrt(2.0f) / 8.0f, -0.4f, 1.0f },{ 0.5f, 0.5f, 0.0f, 1.0f } },
+	/*6*/{ { sqrt(2.0f) / 8.0f, sqrt(2.0f) / 8.0f, -0.4f, 1.0f },{ 0.5f, 0.5f, 0.0f, 1.0f } },
+	/*5*/{ { sqrt(2.0f) / 8.0f, -sqrt(2.0f) / 8.0f, -0.4f, 1.0f },{ 0.5f, 0.5f, 0.0f, 1.0f } },
+	/*4*/{ { -sqrt(2.0f) / 8.0f, -sqrt(2.0f) / 8.0f, -0.4f, 1.0f },{ 0.5f, 0.5f, 0.0f, 1.0f } },
 
 };
 
@@ -569,28 +571,18 @@ void drawObj(int vertexCount) {
 
 void animateCamera() {
 
-	/*vec3 camDir;
-
 	if (camForward) {
-		camDir = camFocus - camDir;
-		camDir.normalize();
-		camDir = camDir * 0.02f;
-
-		camDir = camDir + camDir;
-		camFocus = camFocus + camDir;
+		camDir.z += 0.002f;
 	} 
 	else if (camBackward) {
-		camDir = camFocus - camDir;
-		camDir.normalize();
-		camDir = camDir * 0.02f;
-
-		camDir = camDir - camDir;
-		camFocus = camFocus - camDir;
-	}*/
+		camDir.z -= 0.002f;
+	}
 }
 
 void drawScene()
 {
+	mat3 aux;
+	mat4 T_inv;
 	glUseProgram(sp.programID);
 	// the array "matrix" is a float storage to send to OpenGL
 
@@ -602,17 +594,13 @@ void drawScene()
 	toGLFormat(ProjectionMatrix, matrix);
 	glUniformMatrix4fv(ProjectionMatrix_ID, 1, GL_TRUE, matrix);
 
-	//animateCamera();
-
-	//for quaternions
+	animateCamera();
 
 	if (rotationType == RODRIGUES) {
 		ViewMatrix = mat4_translation(camDir)*mat4_rotation(camPitch, camRight)*mat4_rotation(camAngle, camUp);
-		//ViewMatrix = mat4_translation(camDir);
 	}
-	else {
-		//ViewMatrix = mat4_translation(camDir)*toMat4(qCamDir); -> the "correct one" ??
-		ViewMatrix = mat4_translation(camDir)*toMat4(qRotX*qRotY);
+	else { // QUATERNIONS
+		ViewMatrix = mat4_translation(camDir)*toMat4(qRotState);
 	}
 
 	toGLFormat(ViewMatrix, matrix);
@@ -685,7 +673,8 @@ void keyDown(unsigned char key, int xx, int yy) {
 
 	case 'w': camForward = true; break;
 	case 's': camBackward = true; break;
-	case 'c': PRINT("qCamDir:"); PRINT(qCamDir); break;
+	case 'r': camAngle = 0.0f; camPitch = 0.0f; qRotState = qtrn(1, 0, 0, 0);
+	
 	}
 }
 
@@ -721,16 +710,12 @@ void processMouseMotion(int xx, int yy) {
 	if (tracking == 1) {
 
 		camAngle -= deltaX*0.012f;
-
 		camPitch -= deltaY*0.012f;
 
-		qRotY = qtrn(camAngle, camUp);
-		qRotX = qtrn(camPitch, camRight);
-		qCamDir = qRotX * qRotY * qCamDir;
-		normalize(qCamDir);
+		qRotY = qtrn(-deltaX*0.012f, camUp);
+		qRotX = qtrn(-deltaY*0.012f, camRight);
 
-		//idk what im doing at this point
-
+		qRotState = qRotX*qRotY*qRotState;
 	}
 
 }
