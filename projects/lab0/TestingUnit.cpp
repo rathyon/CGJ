@@ -6,6 +6,7 @@
 #include "mat3.h"
 #include "mat4.h"
 #include "qtrn.h"
+#include "SceneNode.h"
 
 #define PRINT(s) std::cout << s << std::endl
 
@@ -14,6 +15,7 @@ int test() {
 
 	//-----------------------------[ 2x2 VECTOR TESTING ]-----------------------------//
 
+	/** /
 	vec2 tv = vec2(1, 1);
 	vec2 res;
 
@@ -79,8 +81,10 @@ int test() {
 	if(tv.dot(tv2) != 16)
 		PRINT("test failed");
 
-	//-----------------------------[ 3x3 VECTOR TESTING ]-----------------------------//
+	/**/
 
+	//-----------------------------[ 3x3 VECTOR TESTING ]-----------------------------//
+	/** /
 	vec3 v3 = vec3(1);
 	vec3 v3result;
 
@@ -148,9 +152,12 @@ int test() {
 	if(vec3(0,1,0).cross(vec3(0,0,1)) != vec3(1,0,0))
 		PRINT("cross failed");
 
+	/**/
+
 	//-------------------------------[ 2x2 MATRIX TESTING ]-------------------------------//
 
-	/*mat2 m2t = mat2_identity();
+	/** /
+	mat2 m2t = mat2_identity();
 	PRINT(m2t);
 
 	m2t = mat2(1,2,3,4);
@@ -182,14 +189,14 @@ int test() {
 	transpose(m2t);
 	PRINT(m2t);
 	PRINT(mat2_identity().determinant());
-	PRINT(inverse(mat2_identity()));*/
+	PRINT(inverse(mat2_identity()));
+	/**/
 
 
 	//-------------------------------[ 3x3 MATRIX TESTING ]-------------------------------//
-
+	/** /
 	mat3 m3t = mat3_identity();
 	PRINT(m3t);
-	/*
 	m3t = mat3(1,2,3,4,5,6,7,8,9);
 	PRINT(m3t);
 
@@ -226,11 +233,13 @@ int test() {
 	transpose(m3t);
 	PRINT(m3t);
 	PRINT(mat3_identity().determinant());
-	PRINT(inverse(mat3(1,2,3,0,1,4,5,6,0)));*/
+	PRINT(inverse(mat3(1,2,3,0,1,4,5,6,0)));
+	/**/
 
 	//-------------------------------[ 4x4 MATRIX TESTING ]-------------------------------//
 
-	/*mat4 m4t = mat4_identity();
+	/** /
+	mat4 m4t = mat4_identity();
 	PRINT(m4t);
 	
 	m4t = mat4(1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16);
@@ -287,10 +296,12 @@ int test() {
 	transpose(NormalMatrix);
 
 	PRINT(ModelMatrix);
-	PRINT(NormalMatrix);*/
+	PRINT(NormalMatrix);
+	/**/
 
 	//-------------------------------[ QUATERNION TESTING ]-------------------------------//
 
+	/** /
 	vec3 axis = vec3(0, 1, 0);
 	qtrn q = qtrn(90.0f, axis);
 	//PRINT(q);
@@ -306,7 +317,8 @@ int test() {
 	if (!(qf == qe)) {
 		PRINT("90 Degree Rotation in Y Axis failed!");
 	}
-	/************************************************************************************/
+
+
 	vec4 v4i = vec4(7.0f, 0.0f, 0.0f, 1.0f);
 
 	vec4 v4e = vec4(0.0f, 0.0f, -7.0f, 1.0f);
@@ -320,7 +332,8 @@ int test() {
 	if (!(v4f == v4e)) {
 		PRINT("90 Degree Rotation using Matrix failed!");
 	}
-	/************************************************************************************/
+
+
 	vec3 axis_x = vec3(1.0f, 0.0f, 0.0f);
 	vec3 axis_y = vec3(0.0f, 1.0f, 0.0f);
 	vec3 axis_z = vec3( 0.0f, 0.0f, 1.0f);
@@ -351,6 +364,29 @@ int test() {
 	qtrn qfpr = (qpr* qi)* qprinv;
 	if (!(qe == qfpr))
 		PRINT("PitchRollInv test failed!");
+
+	/**/
+
+	//-----------------------------[ SCENE NODE TESTING ]-----------------------------//
+
+	/** /
+	
+	PRINT("------------ SCENE NODES ------------");
+	SceneNode* root = new SceneNode("root");
+	SceneNode* child_1 = new SceneNode("child_1");
+	SceneNode* child_2 = new SceneNode("child_2");
+	SceneNode* subchild_1 = new SceneNode("subchild_1");
+	SceneNode* subchild_2 = new SceneNode("subchild_2");
+
+	child_1->add(subchild_1);
+	child_1->add(subchild_2);
+	root->add(child_1);
+	root->add(child_2);
+	//std::vector<SceneNode*> *tree = root.getSubNodes();
+	//PRINT(tree->size());
+
+	/**/
+
 
 
 	//-------------------------------[ END OF TESTING ]-------------------------------//

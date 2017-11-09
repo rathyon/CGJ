@@ -126,6 +126,16 @@ mat4 mat4_translation(vec3 v) {
 	return mat;
 }
 
+mat4 scale(float x, float y, float z) {
+	return mat4_scale(x, y, z);
+}
+mat4 rotate(float angle, float x, float y, float z) {
+	return mat4_rotation(angle, vec3(x, y, z));
+}
+mat4 translate(float x, float y, float z) {
+	return mat4_translation(vec3(x, y, z));
+}
+
 mat4 lookAt(vec3 pos, vec3 look, vec3 up) {
 	vec3 dir, right;
 

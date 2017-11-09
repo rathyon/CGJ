@@ -37,6 +37,12 @@ public:
 	friend mat4 perspective(float fov, float ratio, float near, float far);
 	friend mat4 ortho(float left, float right, float bottom, float top, float near, float far);
 
+	//too lazy Zzz
+
+	friend mat4 scale(float x, float y, float z);
+	friend mat4 rotate(float angle, float x, float y, float z);
+	friend mat4 translate(float x, float y, float z);
+
 	//subscript operator
 	float* operator[](int); //returns the row: a float array
 

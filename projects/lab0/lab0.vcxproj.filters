@@ -34,11 +34,14 @@
     <Filter Include="Header Files\Quaternion">
       <UniqueIdentifier>{47a7f8cc-8cec-4ac0-86bc-2dd1451f44ca}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Source Files\Scene">
+      <UniqueIdentifier>{8e967c57-3d6c-4eec-a8e2-e33ae8cbe878}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\Scene">
+      <UniqueIdentifier>{e37dbaad-3316-404b-8e0f-8747f3b1915e}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="Shader.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="mat2.h">
       <Filter>Header Files\Matrix</Filter>
     </ClInclude>
@@ -63,12 +66,21 @@
     <ClInclude Include="qtrn.h">
       <Filter>Header Files\Quaternion</Filter>
     </ClInclude>
+    <ClInclude Include="SceneNode.h">
+      <Filter>Header Files\Scene</Filter>
+    </ClInclude>
+    <ClInclude Include="Camera.h">
+      <Filter>Header Files\Scene</Filter>
+    </ClInclude>
+    <ClInclude Include="Mesh.h">
+      <Filter>Header Files\Scene</Filter>
+    </ClInclude>
+    <ClInclude Include="Shader.h">
+      <Filter>Header Files\Scene</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="TestingUnit.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Shader.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="mat2.cpp">
@@ -94,6 +106,18 @@
     </ClCompile>
     <ClCompile Include="qtrn.cpp">
       <Filter>Source Files\Quaternion</Filter>
+    </ClCompile>
+    <ClCompile Include="SceneNode.cpp">
+      <Filter>Source Files\Scene</Filter>
+    </ClCompile>
+    <ClCompile Include="Mesh.cpp">
+      <Filter>Source Files\Scene</Filter>
+    </ClCompile>
+    <ClCompile Include="Camera.cpp">
+      <Filter>Source Files\Scene</Filter>
+    </ClCompile>
+    <ClCompile Include="Shader.cpp">
+      <Filter>Source Files\Scene</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

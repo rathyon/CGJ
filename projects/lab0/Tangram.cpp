@@ -1,17 +1,24 @@
 ///////////////////////////////////////////////////////////////////////
 //
-// Using quaternions to rotate in 3D.
+//  Loading OBJ mesh from external file
 //
-// Assignment: 1. Create a class for Quaternions.
-//             2. Create a scene with a camera rotating around an 
-//                object at the origin and pointing towards it. 
-//                Do NOT use "gluLookAt" to create the ViewMatrix, 
-//                use rotation matrices!
-//             3. Gimbal lock mode ON: use Translation + Rotation 
-//                matrices (e.g. Euler angles, Rodrigues’ formula).
-//             4. Gimbal lock mode OFF: use Quaternions to produce a 
-//                transformation matrix and avoid gimbal lock.
-//             5. Switch between modes by pressing the 'g' key.
+//	Final individual assignment:
+//	1.	Create classes: Scene, Camera and Mesh (that loads a
+//		mesh from a Wavefront OBJ file) and build a small
+//		scenegraph of your tangram scene (you may create more 
+//		classes if needed).
+//	2.	Create a ground object and couple the tangram figure
+//		to the ground. Press keys to move the ground about: 
+//		the tangram figure must follow the ground.
+//	3.	Animate between closed puzzle (initial square) and 
+//		tangram figure by pressing a key.
+//	4.	Spherical camera interaction through mouse. It should
+//		be possible to interact while animation is playing.
+//
+//	Team assignment:
+//	Pick your team (3 elements from one same lab) for the team
+//	assignment you will be working until the end of the semester,
+//	and register it online.
 //
 // (c) 2013-17 by Carlos Martinho
 //
@@ -28,6 +35,8 @@
 //Student-made
 #include "MathLib.h"
 #include "Shader.h"
+#include "SceneNode.h"
+#include "Mesh.h"
 
 #define PRINT(s) std::cout << s << std::endl;
 #define PERSPECTIVE 0
@@ -46,9 +55,6 @@ int startX, startY, tracking = 0;
 #define VERTICES 0
 #define COLORS 1
 
-#define RODRIGUES 0
-#define QUATERNIONS 1
-
 Shader sp;
 
 //const int objCount = 7; /* for tangram*/
@@ -57,6 +63,8 @@ int objID = 0;
 
 float matrix[16];
 
+//GLSL stuff
+
 GLuint vao_ID[objCount];
 GLuint vbo_ID[objCount][2];
 
@@ -64,10 +72,21 @@ GLint ModelMatrix_ID;
 GLint ViewMatrix_ID;
 GLint ProjectionMatrix_ID;
 
+// Matrices
 mat4 ModelMatrix;
 mat4 ViewMatrix;
 mat4 ProjectionMatrix;
 
+// Scene Variables
+
+Mesh cube_mesh;
+SceneNode* cube;
+
+float step_x = 0.0f;
+float step_y = 0.0f;
+float step_z = 0.0f;
+
+// Camera variables
 vec3 camDir = vec3(0.0f, 0.0f, -5.0f);
 vec3 camFocus = vec3(0.0f);
 vec3 camUp = vec3(0.0f, 1.0f, 0.0f);
@@ -84,7 +103,6 @@ bool camForward = false;
 bool camBackward = false;
 
 int cameraType = PERSPECTIVE;
-int rotationType = RODRIGUES;
 
 // unused
 GLuint VertexShaderId, FragmentShaderId, ProgramId; // please remove these!
@@ -532,8 +550,19 @@ void createBufferObjects(){
 	computeVAO(objID++, quad, sizeof(quad), quad_i, sizeof(quad_i));
 	computeVAO(objID, para, sizeof(para), quad_i, sizeof(quad_i));*/ 
 
-
 	computeVAO(objID, quad, sizeof(quad), quad_i, sizeof(quad_i));
+
+	/* NEW STUFF - TEMPORARY */
+
+	cube = new SceneNode("cube :D");
+
+	cube_mesh.setVAO(vao_ID[objID]);
+	cube_mesh.setVertexCount(36);
+
+	cube->setShader(sp.programID);
+	cube->setMesh(cube_mesh);
+
+	/* END OF NEW STUFF */
 
 	glBindVertexArray(0);
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
@@ -581,6 +610,11 @@ void animateCamera() {
 
 void drawScene()
 {
+	/*
+	/*\------------------/ THE FIRST IS THE LAST \------------------/*\
+	/*\------------------/ THE LAST IS THE FIRST \------------------/*\
+	*/
+
 	mat3 aux;
 	mat4 T_inv;
 	glUseProgram(sp.programID);
@@ -595,21 +629,27 @@ void drawScene()
 	glUniformMatrix4fv(ProjectionMatrix_ID, 1, GL_TRUE, matrix);
 
 	animateCamera();
-
-	if (rotationType == RODRIGUES) {
-		ViewMatrix = mat4_translation(camDir)*mat4_rotation(camPitch, camRight)*mat4_rotation(camAngle, camUp);
-	}
-	else { // QUATERNIONS
-		ViewMatrix = mat4_translation(camDir)*toMat4(qRotState);
-	}
+	ViewMatrix = mat4_translation(camDir)*toMat4(qRotState);
 
 	toGLFormat(ViewMatrix, matrix);
 	glUniformMatrix4fv(ViewMatrix_ID, 1, GL_TRUE, matrix);
 
 	// yellow quad for quaternions
-	objID = 0;
-	ModelMatrix = mat4_identity();
+	/** /objID = 0;
+	ModelMatrix = mat4_translation(vec3(0,0.5,0))*mat4_rotation(90.0f, vec3(0, 1, 0))*mat4_scale(vec3(1,1,0.5f));
 	drawObj(36);
+	/**/
+	// rendering using new classes:
+
+	step_x += 0.13f;
+	step_y += 0.1f;
+	step_z += 0.25f;
+
+	cube->setMatrix(
+		rotate(step_x, 1,0,0)*rotate(step_y, 0,1,0)*rotate(step_z,0,0,1)*scale(1,1,0.5f)
+	);
+
+	cube->render();
 
 	glUseProgram(0);
 	glBindVertexArray(0);
@@ -660,17 +700,6 @@ void keyDown(unsigned char key, int xx, int yy) {
 	switch (key) {
 
 	case 'p': if (cameraType == PERSPECTIVE) cameraType = ORTHOGRAPHIC; else cameraType = PERSPECTIVE; break;
-
-	case 'g': if (rotationType == RODRIGUES) {
-					rotationType = QUATERNIONS;
-					std::cout << "Quaternion Rotation" << std::endl;
-			  }
-			  else {
-				  rotationType = RODRIGUES;
-				  std::cout << "Euler Rotation" << std::endl;
-			  } 
-			  break;
-
 	case 'w': camForward = true; break;
 	case 's': camBackward = true; break;
 	case 'r': camAngle = 0.0f; camPitch = 0.0f; qRotState = qtrn(1, 0, 0, 0);
