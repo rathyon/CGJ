@@ -81,6 +81,8 @@ mat4 ProjectionMatrix;
 
 Mesh cube_mesh;
 SceneNode* cube;
+SceneNode* mr_child;
+SceneNode* sniff;
 
 float step_x = 0.0f;
 float step_y = 0.0f;
@@ -555,12 +557,23 @@ void createBufferObjects(){
 	/* NEW STUFF - TEMPORARY */
 
 	cube = new SceneNode("cube :D");
+	mr_child = new SceneNode("mr child");
+	sniff = new SceneNode("sniff");
 
 	cube_mesh.setVAO(vao_ID[objID]);
 	cube_mesh.setVertexCount(36);
 
 	cube->setShader(sp.programID);
 	cube->setMesh(cube_mesh);
+
+	mr_child->setShader(sp.programID);
+	mr_child->setMesh(cube_mesh);
+
+	sniff->setShader(sp.programID);
+	sniff->setMesh(cube_mesh);
+
+	mr_child->add(sniff);
+	cube->add(mr_child);
 
 	/* END OF NEW STUFF */
 
@@ -641,12 +654,18 @@ void drawScene()
 	/**/
 	// rendering using new classes:
 
-	step_x += 0.13f;
-	step_y += 0.1f;
-	step_z += 0.25f;
-
 	cube->setMatrix(
-		rotate(step_x, 1,0,0)*rotate(step_y, 0,1,0)*rotate(step_z,0,0,1)*scale(1,1,0.5f)
+		mat4_identity()
+	);
+
+	mr_child->setMatrix(
+		translate(1,0,0)*rotate(45, 0, 1, 0)
+	);
+
+	step_y += 0.1f;
+
+	sniff->setMatrix(
+		translate(0,1,0)*rotate(45.0f + step_y,0,1,0)
 	);
 
 	cube->render();
