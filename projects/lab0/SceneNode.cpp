@@ -2,13 +2,11 @@
 
 SceneNode::SceneNode()
 {
-	parent = nullptr;
 	name = "";
 }
 
 SceneNode::SceneNode(std::string s)
 {
-	parent = nullptr;
 	name = s;
 }
 

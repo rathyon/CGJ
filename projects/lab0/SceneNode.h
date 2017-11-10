@@ -10,7 +10,7 @@ class SceneNode
 {
 private:
 	std::vector<SceneNode*> nodes;
-	SceneNode* parent;
+	SceneNode* parent = nullptr;
 
 	std::string name;
 

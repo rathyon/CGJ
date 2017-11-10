@@ -35,6 +35,7 @@
 //Student-made
 #include "MathLib.h"
 #include "Shader.h"
+#include "Scene.h"
 #include "SceneNode.h"
 #include "Mesh.h"
 
@@ -42,7 +43,7 @@
 #define PERSPECTIVE 0
 #define ORTHOGRAPHIC 1
 
-#define CAPTION "Quaternion Rotation App"
+#define CAPTION "Animation Viewer"
 
 int WinX = 640, WinY = 480;
 int WindowHandle = 0;
@@ -61,16 +62,10 @@ Shader sp;
 const int objCount = 1;
 int objID = 0;
 
-float matrix[16];
-
 //GLSL stuff
 
 GLuint vao_ID[objCount];
 GLuint vbo_ID[objCount][2];
-
-GLint ModelMatrix_ID;
-GLint ViewMatrix_ID;
-GLint ProjectionMatrix_ID;
 
 // Matrices
 mat4 ModelMatrix;
@@ -78,6 +73,7 @@ mat4 ViewMatrix;
 mat4 ProjectionMatrix;
 
 // Scene Variables
+Scene scene;
 
 Mesh cube_mesh;
 SceneNode* cube;
@@ -89,25 +85,18 @@ float step_y = 0.0f;
 float step_z = 0.0f;
 
 // Camera variables
+Camera* cam;
+
 vec3 camDir = vec3(0.0f, 0.0f, -5.0f);
-vec3 camFocus = vec3(0.0f);
-vec3 camUp = vec3(0.0f, 1.0f, 0.0f);
-vec3 camRight = vec3(-1.0f, 0.0f, 0.0f);
-float camAngle = 0.0f;
-float camPitch = 0.0f;
 
-qtrn qRotY = qtrn(camAngle, camUp);
-qtrn qRotX = qtrn(camPitch, camRight);
-
+qtrn qRotY = qtrn(0.0f, vec3(0,1,0));
+qtrn qRotX = qtrn(0.0f, vec3(-1.0f, 0, 0));
 qtrn qRotState = qtrn(1.0f, 0, 0, 0);
 
 bool camForward = false;
 bool camBackward = false;
 
 int cameraType = PERSPECTIVE;
-
-// unused
-GLuint VertexShaderId, FragmentShaderId, ProgramId; // please remove these!
 
 /////////////////////////////////////////////////////////////////////// MESH DATA
 
@@ -491,10 +480,6 @@ void createShaderProgram()
 	sp.setAttributeName(Shader::COLORS_ATTRIB, "in_Color");
 	sp.linkProgram();
 
-	ModelMatrix_ID = glGetUniformLocation(sp.programID, "ModelMatrix");
-	ViewMatrix_ID = glGetUniformLocation(sp.programID, "ViewMatrix");
-	ProjectionMatrix_ID = glGetUniformLocation(sp.programID, "ProjectionMatrix");
-
 	// error checking
 	sp.shaderInfoLog(Shader::VERTEX_SHADER);
 	sp.shaderInfoLog(Shader::FRAGMENT_SHADER);
@@ -506,7 +491,7 @@ void createShaderProgram()
 // unused: must correct
 void destroyShaderProgram()
 {
-	glUseProgram(0);
+	/*glUseProgram(0);
 	glDetachShader(ProgramId, VertexShaderId);
 	glDetachShader(ProgramId, FragmentShaderId);
 
@@ -514,7 +499,7 @@ void destroyShaderProgram()
 	glDeleteShader(VertexShaderId);
 	glDeleteProgram(ProgramId);
 
-	checkOpenGLError("ERROR: Could not destroy shaders.");
+	checkOpenGLError("ERROR: Could not destroy shaders.");*/
 }
 
 
@@ -539,22 +524,17 @@ void computeVAO(int objID, Vertex vertices[], int vSize, GLubyte indices[], int 
 
 }
 
-void createBufferObjects(){
+void setupScene(){
 
 	glGenVertexArrays(objCount, vao_ID);
 
-	// for tangram
-	/*computeVAO(objID++, tri1, sizeof(tri1), tri_i, sizeof(tri_i));
-	computeVAO(objID++, tri2, sizeof(tri2), tri_i, sizeof(tri_i));
-	computeVAO(objID++, tri3, sizeof(tri3), tri_i, sizeof(tri_i));
-	computeVAO(objID++, tri4, sizeof(tri4), tri_i, sizeof(tri_i));
-	computeVAO(objID++, tri5, sizeof(tri5), tri_i, sizeof(tri_i));
-	computeVAO(objID++, quad, sizeof(quad), quad_i, sizeof(quad_i));
-	computeVAO(objID, para, sizeof(para), quad_i, sizeof(quad_i));*/ 
-
 	computeVAO(objID, quad, sizeof(quad), quad_i, sizeof(quad_i));
 
-	/* NEW STUFF - TEMPORARY */
+	cam = new Camera();
+	cam->setProjectionMatrix(perspective(30.0f, (1.0f * WinX) / WinY, 0.1f, 1000.0f));
+
+	scene.setCamera(cam);
+	scene.setShader(sp.programID);
 
 	cube = new SceneNode("cube :D");
 	mr_child = new SceneNode("mr child");
@@ -574,6 +554,8 @@ void createBufferObjects(){
 
 	mr_child->add(sniff);
 	cube->add(mr_child);
+
+	scene.add(cube);
 
 	/* END OF NEW STUFF */
 
@@ -601,23 +583,13 @@ void destroyBufferObjects()
 }
 
 /////////////////////////////////////////////////////////////////////// SCENE
-
-void drawObj(int vertexCount) {
-	glBindVertexArray(vao_ID[objID]);
-	glUseProgram(sp.programID);
-	toGLFormat(ModelMatrix, matrix);
-	glUniformMatrix4fv(ModelMatrix_ID, 1, GL_TRUE, matrix);
-	//glDrawElements(GL_TRIANGLES, vertexCount, GL_UNSIGNED_BYTE, (GLvoid*)0);
-	glDrawArrays(GL_TRIANGLES, 0, vertexCount);
-}
-
 void animateCamera() {
 
 	if (camForward) {
-		camDir.z += 0.002f;
+		camDir.z += 0.01f;
 	} 
 	else if (camBackward) {
-		camDir.z -= 0.002f;
+		camDir.z -= 0.01f;
 	}
 }
 
@@ -627,31 +599,10 @@ void drawScene()
 	/*\------------------/ THE FIRST IS THE LAST \------------------/*\
 	/*\------------------/ THE LAST IS THE FIRST \------------------/*\
 	*/
-
-	mat3 aux;
-	mat4 T_inv;
-	glUseProgram(sp.programID);
-	// the array "matrix" is a float storage to send to OpenGL
-
-	if (cameraType == PERSPECTIVE)
-		ProjectionMatrix = perspective(30.0f, (1.0f * WinX) / WinY, 0.1f, 1000.0f);
-	else
-		ProjectionMatrix = ortho(-2, 2, -2, 2, 0.1f, 100.0f);
-
-	toGLFormat(ProjectionMatrix, matrix);
-	glUniformMatrix4fv(ProjectionMatrix_ID, 1, GL_TRUE, matrix);
-
 	animateCamera();
-	ViewMatrix = mat4_translation(camDir)*toMat4(qRotState);
 
-	toGLFormat(ViewMatrix, matrix);
-	glUniformMatrix4fv(ViewMatrix_ID, 1, GL_TRUE, matrix);
+	cam->setViewMatrix(mat4_translation(camDir)*toMat4(qRotState));
 
-	// yellow quad for quaternions
-	/** /objID = 0;
-	ModelMatrix = mat4_translation(vec3(0,0.5,0))*mat4_rotation(90.0f, vec3(0, 1, 0))*mat4_scale(vec3(1,1,0.5f));
-	drawObj(36);
-	/**/
 	// rendering using new classes:
 
 	cube->setMatrix(
@@ -668,7 +619,7 @@ void drawScene()
 		translate(0,1,0)*rotate(45.0f + step_y,0,1,0)
 	);
 
-	cube->render();
+	scene.render();
 
 	glUseProgram(0);
 	glBindVertexArray(0);
@@ -721,7 +672,7 @@ void keyDown(unsigned char key, int xx, int yy) {
 	case 'p': if (cameraType == PERSPECTIVE) cameraType = ORTHOGRAPHIC; else cameraType = PERSPECTIVE; break;
 	case 'w': camForward = true; break;
 	case 's': camBackward = true; break;
-	case 'r': camAngle = 0.0f; camPitch = 0.0f; qRotState = qtrn(1, 0, 0, 0);
+	case 'r': qRotState = qtrn(1, 0, 0, 0);
 	
 	}
 }
@@ -757,11 +708,8 @@ void processMouseMotion(int xx, int yy) {
 
 	if (tracking == 1) {
 
-		camAngle -= deltaX*0.012f;
-		camPitch -= deltaY*0.012f;
-
-		qRotY = qtrn(-deltaX*0.012f, camUp);
-		qRotX = qtrn(-deltaY*0.012f, camRight);
+		qRotY = qtrn(-deltaX*0.012f, vec3(0,1,0));
+		qRotX = qtrn(-deltaY*0.012f, vec3(-1.0f, 0, 0));
 
 		qRotState = qRotX*qRotY*qRotState;
 	}
@@ -843,8 +791,10 @@ void init(int argc, char* argv[])
 	setupGLUT(argc, argv);
 	setupGLEW();
 	setupOpenGL();
+
 	createShaderProgram();
-	createBufferObjects();
+	setupScene();
+
 	setupCallbacks();
 }
 

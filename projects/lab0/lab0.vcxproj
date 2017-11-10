@@ -26,6 +26,7 @@
     <ClInclude Include="mat4.h" />
     <ClInclude Include="Mesh.h" />
     <ClInclude Include="qtrn.h" />
+    <ClInclude Include="Scene.h" />
     <ClInclude Include="SceneNode.h" />
     <ClInclude Include="Shader.h" />
     <ClInclude Include="vec2.h" />
@@ -39,6 +40,7 @@
     <ClCompile Include="mat4.cpp" />
     <ClCompile Include="Mesh.cpp" />
     <ClCompile Include="qtrn.cpp" />
+    <ClCompile Include="Scene.cpp" />
     <ClCompile Include="SceneNode.cpp" />
     <ClCompile Include="Shader.cpp" />
     <ClCompile Include="Tangram.cpp" />
