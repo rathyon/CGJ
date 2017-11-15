@@ -94,12 +94,6 @@ void SceneNode::render() {
 
 		mat4 total_transforms;
 
-		/** /if (parent)
-			total_transforms = ModelMatrix * this->parentTransforms();
-		else
-			total_transforms = ModelMatrix;
-		/**/
-
 		/**/
 		SceneNode* node = parent;
 		total_transforms = ModelMatrix;
@@ -109,6 +103,10 @@ void SceneNode::render() {
 			node = node->getParent();
 		}
 		/**/
+
+		GLint loc;
+		loc = glGetUniformLocation(shader, "color");
+		glUniform4fv(loc, 1, mesh.getColor());
 
 		float matrix[16];
 		toGLFormat(total_transforms, matrix);

@@ -4,7 +4,11 @@ Mesh::Mesh()
 {
 }
 
-Mesh::Mesh(std::string filename) {
+Mesh::Mesh(std::string filename, float* color) {
+	Color[0] = color[0];
+	Color[1] = color[1];
+	Color[2] = color[2];
+	Color[3] = color[3];
 	load(filename);
 }
 
@@ -63,6 +67,10 @@ GLuint Mesh::getVAO() {
 }
 GLsizei Mesh::getVertexCount() {
 	return vertexCount;
+}
+
+float* Mesh::getColor() {
+	return Color;
 }
 
 bool Mesh::load(std::string filename) {

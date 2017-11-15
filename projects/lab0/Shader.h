@@ -14,7 +14,9 @@ public:
 
 	enum AttributeType {
 		VERTICES_ATTRIB,
-		COLORS_ATTRIB //colors might be removed in the future
+		NORMALS_ATTRIB,
+		TEXCOORDS_ATTRIB,
+		COLORS_ATTRIB
 	};
 
 	Shader();

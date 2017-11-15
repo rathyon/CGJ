@@ -75,14 +75,33 @@ mat4 ProjectionMatrix;
 // Scene Variables
 Scene scene;
 
-Mesh cube_mesh;
-SceneNode* cube;
-SceneNode* mr_child;
-SceneNode* sniff;
+SceneNode* ground;
 
-float step_x = 0.0f;
-float step_y = 0.0f;
-float step_z = 0.0f;
+SceneNode* small_tri;
+SceneNode* small_tri2;
+SceneNode* medium_tri;
+SceneNode* large_tri;
+SceneNode* large_tri2;
+SceneNode* cube;
+SceneNode* parallelogram;
+
+float rise = 0.0f;
+float place = 0.0f;
+float step = 0.005f;
+
+bool placed = false;
+
+bool play = false;
+bool reverse = false;
+
+float ground_z = 0.0f;
+float ground_x = 0.0f;
+float ground_step = 0.1f;
+
+bool up = false;
+bool down = false;
+bool left = false;
+bool right = false;
 
 // Camera variables
 Camera* cam;
@@ -93,10 +112,6 @@ qtrn qRotY = qtrn(0.0f, vec3(0,1,0));
 qtrn qRotX = qtrn(0.0f, vec3(-1.0f, 0, 0));
 qtrn qRotState = qtrn(1.0f, 0, 0, 0);
 
-bool camForward = false;
-bool camBackward = false;
-
-int cameraType = PERSPECTIVE;
 /////////////////////////////////////////////////////////////////////// ERRORS
 
 bool isOpenGLError() {
@@ -134,7 +149,7 @@ void createShaderProgram()
 		PRINT("Fragment shader is not compiled!");
 
 	sp.setAttributeName(Shader::VERTICES_ATTRIB, "in_Position");
-	sp.setAttributeName(Shader::COLORS_ATTRIB, "in_Color");
+	sp.setAttributeName(Shader::NORMALS_ATTRIB, "in_Normal");
 	sp.linkProgram();
 
 	// error checking
@@ -167,26 +182,71 @@ void setupScene(){
 	scene.setCamera(cam);
 	scene.setShader(sp.programID);
 
-	cube = new SceneNode("cube :D");
-	mr_child = new SceneNode("mr child");
-	sniff = new SceneNode("sniff");
+	ground = new SceneNode("ground");
 
-	cube_mesh = Mesh();
-	cube_mesh.load("cube_lamp.obj");
+	cube = new SceneNode("cube");
+	small_tri = new SceneNode("small_tri");
+	small_tri2 = new SceneNode("small_tri2");
+	medium_tri = new SceneNode("medium_tri");
+	large_tri = new SceneNode("large_tri");
+	large_tri2 = new SceneNode("large_tri2");
+	parallelogram = new SceneNode("parallelogram");
+
+
+	float red[4] = { 1,0,0,1 };
+	float green[4] = { 0,1,0,1 };
+	float blue[4] = { 0,0,1,1 };
+
+	float cyan[4] = { 0,1,1,1 };
+	float yellow[4] = { 1,1,0,1 };
+	float magenta[4] = { 1,0,1,1 };
+
+	float purple[4] = { 0.6f,0,1,1 };
+	float gray[4] = { 0.5f , 0.5f, 0.5f, 1 };
+
+	Mesh ground_m = Mesh("ground.obj", gray);
+
+	Mesh small_tri_m = Mesh("small_triangle.obj", red);
+	Mesh small_tri2_m = Mesh("small_triangle2.obj", green);
+	Mesh medium_tri_m = Mesh("medium_triangle.obj", blue);
+	Mesh large_tri_m = Mesh("large_triangle.obj", cyan);
+	Mesh large_tri2_m = Mesh("large_triangle2.obj", yellow);
+	Mesh parallelogram_m = Mesh("parallelogram.obj", magenta);
+	Mesh cube_m = Mesh("cube.obj", purple);
+
+	ground->setShader(sp.programID);
+	ground->setMesh(ground_m);
 
 	cube->setShader(sp.programID);
-	cube->setMesh(cube_mesh);
+	cube->setMesh(cube_m);
 
-	mr_child->setShader(sp.programID);
-	mr_child->setMesh(cube_mesh);
+	small_tri->setShader(sp.programID);
+	small_tri->setMesh(small_tri_m);
 
-	sniff->setShader(sp.programID);
-	sniff->setMesh(cube_mesh);
+	small_tri2->setShader(sp.programID);
+	small_tri2->setMesh(small_tri2_m);
 
-	mr_child->add(sniff);
-	cube->add(mr_child);
+	medium_tri->setShader(sp.programID);
+	medium_tri->setMesh(medium_tri_m);
 
-	scene.add(cube);
+	large_tri->setShader(sp.programID);
+	large_tri->setMesh(large_tri_m);
+
+	large_tri2->setShader(sp.programID);
+	large_tri2->setMesh(large_tri2_m);
+
+	parallelogram->setShader(sp.programID);
+	parallelogram->setMesh(parallelogram_m);
+
+	ground->add(small_tri);
+	ground->add(small_tri2);
+	ground->add(medium_tri);
+	ground->add(large_tri);
+	ground->add(large_tri2);
+	ground->add(parallelogram);
+	ground->add(cube);
+
+	scene.add(ground);
 
 	/* END OF NEW STUFF */
 
@@ -215,13 +275,52 @@ void destroyBufferObjects()
 
 /////////////////////////////////////////////////////////////////////// SCENE
 void animateCamera() {
+}
 
-	if (camForward) {
-		camDir.z += 0.01f;
-	} 
-	else if (camBackward) {
-		camDir.z -= 0.01f;
+void animateScene() {
+
+	if (play) {
+		if (!placed) {
+			if (rise < 1.0f)
+				rise += step;
+			else if (place < 1.0f)
+				place += step;
+			else
+				placed = true;
+		}
+		else {
+			if (rise > 0.0f)
+				rise -= step;
+		}
 	}
+
+	else if (reverse) {
+		if (placed) {
+			if (rise < 1.0f)
+				rise += step;
+			else
+				placed = false;
+		}
+		else {
+			if (place > 0.0f)
+				place -= step;
+			else if (rise > 0.0f)
+				rise -= step;
+		}
+	}
+
+}
+
+void animateGround() {
+
+	if (up)
+		ground_z -= ground_step;
+	if (down)
+		ground_z += ground_step;
+	if (left)
+		ground_x -= ground_step;
+	if (right)
+		ground_x += ground_step;
 }
 
 void drawScene()
@@ -230,33 +329,57 @@ void drawScene()
 	/*\------------------/ THE LAST TRANSFORM IS THE FIRST APPLIED \------------------/*\
 	*/
 	animateCamera();
+	animateScene();
+	animateGround();
 
 	cam->setViewMatrix(mat4_translation(camDir)*toMat4(qRotState));
 
 	// rendering using new classes:
 
-	cube->setMatrix(
+	/** /
+	scene.getRoot()->setMatrix(
 		mat4_identity()
 	);
-
-	mr_child->setMatrix(
-		translate(20, 0, 0)*rotate(45, 0, 1, 0)
-	);
-
-	step_y += 0.1f;
-
-	sniff->setMatrix(
-		translate(0, 20, 0)*translate(20, 0, 0)*rotate(45.0f + step_y, 0, 1, 0)*translate(-20, 0, 0)
-	);
-
-	// where is the shader getting the color from?
-	// glUniform funcs -> Invalid Operation
-	/** /
-	GLint loc;
-	loc = glGetUniformLocation(sp.programID, "blabla");
-	int color = 1;
-	glUniform1i(loc, 1);
 	/**/
+
+	ground->setMatrix(
+		translate(ground_x, -5, ground_z)
+	);
+
+	//purple
+	cube->setMatrix(
+		translate(-1.7*place, -12 * rise,-10*place)*translate(ground_x, 0, ground_z)*rotate(-45*place,0,1,0)*translate(-ground_x, 5, -ground_z)
+	);
+
+	//red
+	small_tri->setMatrix(
+		translate(0, -8 * rise, 2 * place)*translate(ground_x, 0, ground_z)*rotate(90 * place, 0, 1, 0)*translate(-ground_x, 5, -ground_z)
+	);
+
+	//green
+	small_tri2->setMatrix(
+		translate(-2.5*place, -4 * rise, -0.5*place)*translate(ground_x, 0, ground_z)*rotate(0, 0, 1, 0)*translate(-ground_x, 5, -ground_z)
+	);
+
+	//blue
+	medium_tri->setMatrix(
+		translate(0, 0, -10 * place)*translate(ground_x, 0, ground_z)*rotate(-45 * place, 0, 1, 0)*translate(-ground_x, 5, -ground_z)
+	);
+
+	//cyan
+	large_tri->setMatrix(
+		translate(0, 4 * rise, 2 * place)*translate(ground_x, 0, ground_z)*rotate(90 * place, 0, 1, 0)*translate(-ground_x, 5, -ground_z)
+	);
+
+	//yellow
+	large_tri2->setMatrix(
+		translate(2.5*place, 8 * rise, -0.5*place)*translate(ground_x, 0, ground_z)*rotate(90 * place, 0, 1, 0)*translate(-ground_x, 5, -ground_z)
+	);
+
+	//magenta
+	parallelogram->setMatrix(
+		translate(-3.4*place, 12 * rise,-17 * place)*translate(ground_x, 0, ground_z)*rotate(75 * place,0,1,0)*translate(-ground_x, 5, -ground_z)
+	);
 
 	scene.render();
 
@@ -308,10 +431,15 @@ void timer(int value)
 void keyDown(unsigned char key, int xx, int yy) {
 	switch (key) {
 
-	case 'p': if (cameraType == PERSPECTIVE) cameraType = ORTHOGRAPHIC; else cameraType = PERSPECTIVE; break;
-	case 'w': camForward = true; break;
-	case 's': camBackward = true; break;
-	case 'r': qRotState = qtrn(1, 0, 0, 0);
+	case 'w': up = true; break;
+	case 's': down = true; break;
+	case 'a': left = true; break;
+	case 'd': right = true; break;
+
+	case 'r': qRotState = qtrn(1, 0, 0, 0); break;
+
+	case 'z': reverse = true; break;
+	case 'c': play = true; break;
 	
 	}
 }
@@ -320,8 +448,13 @@ void keyUp(unsigned char key, int xx, int yy) {
 
 	switch (key) {
 
-	case 'w': camForward = false; break;
-	case 's': camBackward = false; break;
+	case 'w': up = false; break;
+	case 's': down = false; break;
+	case 'a': left = false; break;
+	case 'd': right = false; break;
+
+	case 'z': reverse = false; break;
+	case 'c': play = false; break;
 	}
 
 }

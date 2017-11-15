@@ -6,9 +6,11 @@
 #include <fstream>
 #include <vector>
 
+// THESE MUST MATCH THE ORDER IN Shader.h
 #define VERTICES 0
 #define NORMALS 1
 #define TEXCOORDS 2
+#define COLORS 3
 
 typedef struct {
 	GLfloat x, y, z;
@@ -31,6 +33,9 @@ private:
 	GLuint Normal_VBO;
 	GLsizei vertexCount;
 
+	//hard coded color just for this assignment
+	float Color[4];
+
 	std::vector <Vertex> Vertices, vertexData;
 	std::vector <Texcoord> Texcoords, texcoordData;
 	std::vector <Normal> Normals, normalData;
@@ -46,11 +51,12 @@ private:
 
 public:
 	Mesh();
-	Mesh(std::string);
+	Mesh(std::string, float* color);
 	~Mesh();
 
 	GLuint getVAO();
 	GLsizei getVertexCount();
+	float* getColor();
 
 	// real funcs
 	bool load(std::string);
