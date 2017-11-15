@@ -104,8 +104,8 @@ void SceneNode::render() {
 		SceneNode* node = parent;
 		total_transforms = ModelMatrix;
 		while(node){
-			//total_transforms = total_transforms * node->getMatrix(); // transforms order: ( 3rd * 2nd) * 1st -> for scale
-			total_transforms = node->getMatrix() * total_transforms; // transforms order: 3rd * (2nd * 1st) -> for rotation
+			total_transforms = total_transforms * node->getMatrix(); // transforms order: ( 3rd * 2nd) * 1st -> for scale
+			//total_transforms = node->getMatrix() * total_transforms; // transforms order: 3rd * (2nd * 1st) -> for rotation
 			node = node->getParent();
 		}
 		/**/
